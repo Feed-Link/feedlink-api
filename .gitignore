@@ -1,19 +1,42 @@
-/.phpunit.cache
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/vendor
-.env
-.env.backup
-.env.production
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-auth.json
-npm-debug.log
-yarn-error.log
+# IDE
 /.fleet
 /.idea
 /.vscode
+
+# Dependencies
+/node_modules
+/vendor
+
+# Build & Public
+/public/build
+/public/hot
+/public/storage
+
+# Environment
+.env
+.env.dev
+.env.backup
+.env.production
+
+# Storage
+/storage/*.key
+
+# Testing
+.phpunit.cache
+.phpunit.result.cache
+
+# Logs
+npm-debug.log
+yarn-error.log
+
+# Configuration
+Homestead.json
+Homestead.yaml
+auth.json
+
+# Local Development
+rr
+.rr.yaml
+**/caddy
+frankenphp
+frankenphp-worker.php
