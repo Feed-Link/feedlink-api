@@ -13,7 +13,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2️⃣ Install composer dependencies
+      # 2️⃣ Install Composer dependencies (no dev for production)
       - name: Install Composer Dependencies
         run: composer install --optimize-autoloader
 
@@ -31,15 +31,15 @@ jobs:
           echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          # add other secrets if needed
+          # Add other secrets as needed
 
-      # 4️⃣ Deploy Laravel App (do not overwrite .env)
+      # 4️⃣ Deploy Laravel App using sudo rsync
       - name: Deploy Laravel App
         run: |
-          rsync -av --exclude='.env' ./ /var/www/feedlink-api/
-          chown -R www-data:www-data /var/www/feedlink-api
-          chmod -R 775 /var/www/feedlink-api/storage /var/www/feedlink-api/bootstrap/cache
+          sudo rsync -av --exclude='.env' ./ /var/www/feedlink-api/
+          sudo chown -R www-data:www-data /var/www/feedlink-api
+          sudo chmod -R 775 /var/www/feedlink-api/storage /var/www/feedlink-api/bootstrap/cache
 
       # 5️⃣ Restart PHP-FPM to apply changes
       - name: Restart PHP-FPM
-        run: sudo systemctl restart php8.2-fpm
+        run: sudo systemctl restart php8.4-fpm
