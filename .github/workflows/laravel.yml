@@ -13,18 +13,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup PHP 8.2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, bcmath, pdo_pgsql, redis
-
-      # 3️⃣ Install composer dependencies
+      # 2️⃣ Install composer dependencies
       - name: Install Composer Dependencies
         run: composer install --no-dev --optimize-autoloader
 
-      # 4️⃣ Create .env from GitHub Secrets
+      # 3️⃣ Create .env from GitHub Secrets
       - name: Create .env from Secrets
         run: |
           echo "APP_NAME=Feedlink" > .env
@@ -40,13 +33,13 @@ jobs:
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
           # add other secrets if needed
 
-      # 5️⃣ Deploy Laravel App
+      # 4️⃣ Deploy Laravel App (do not overwrite .env)
       - name: Deploy Laravel App
         run: |
           rsync -av --exclude='.env' ./ /var/www/feedlink-api/
           chown -R www-data:www-data /var/www/feedlink-api
           chmod -R 775 /var/www/feedlink-api/storage /var/www/feedlink-api/bootstrap/cache
 
-      # 6️⃣ Restart PHP-FPM to apply changes
+      # 5️⃣ Restart PHP-FPM to apply changes
       - name: Restart PHP-FPM
         run: sudo systemctl restart php8.2-fpm
