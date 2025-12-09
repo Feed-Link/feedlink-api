@@ -17,29 +17,37 @@ jobs:
       - name: Install Composer Dependencies
         run: composer install --optimize-autoloader
 
-      # 3️⃣ Create .env from GitHub Secrets
-      - name: Create .env from Secrets
+      # 3️⃣ Set Laravel environment variables from GitHub Secrets
+      - name: Set Laravel Env from Secrets
         run: |
-          echo "APP_NAME=Feedlink" > .env
-          echo "APP_ENV=production" >> .env
-          echo "APP_KEY=${{ secrets.APP_KEY }}" >> .env
-          echo "APP_DEBUG=false" >> .env
-          echo "APP_URL=${{ secrets.APP_URL }}" >> .env
-          echo "DB_CONNECTION=pgsql" >> .env
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
-          echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
-          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "APP_NAME=Feedlink" >> $GITHUB_ENV
+          echo "APP_ENV=production" >> $GITHUB_ENV
+          echo "APP_KEY=${{ secrets.APP_KEY }}" >> $GITHUB_ENV
+          echo "APP_DEBUG=false" >> $GITHUB_ENV
+          echo "APP_URL=${{ secrets.APP_URL }}" >> $GITHUB_ENV
+          echo "DB_CONNECTION=pgsql" >> $GITHUB_ENV
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> $GITHUB_ENV
+          echo "DB_PORT=${{ secrets.DB_PORT }}" >> $GITHUB_ENV
+          echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> $GITHUB_ENV
+          echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> $GITHUB_ENV
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
           # Add other secrets as needed
 
-      # 4️⃣ Deploy Laravel App using sudo rsync
+      # 4️⃣ Deploy Laravel App
       - name: Deploy Laravel App
         run: |
-          sudo rsync -av --exclude='.env' ./ /var/www/feedlink-api/
+          sudo rsync -av ./ /var/www/feedlink-api/
           sudo chown -R www-data:www-data /var/www/feedlink-api
           sudo chmod -R 775 /var/www/feedlink-api/storage /var/www/feedlink-api/bootstrap/cache
 
-      # 5️⃣ Restart PHP-FPM to apply changes
+      # 5️⃣ Clear caches on server
+      - name: Clear Laravel Cache
+        run: |
+          cd /var/www/feedlink-api
+          php artisan config:clear
+          php artisan route:clear
+          php artisan cache:clear
+
+      # 6️⃣ Restart PHP-FPM
       - name: Restart PHP-FPM
         run: sudo systemctl restart php8.4-fpm
