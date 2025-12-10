@@ -107,6 +107,20 @@ abstract class BaseRepository
         return $rows->get();
     }
 
+    public function fetchBy(string $column, int|string $value, array $with = []): ?object
+    {
+        $rows = $this->model::query();
+
+        if (!empty($with)) {
+            $rows = $rows->with($with);
+        }
+        $rows = $rows->where($column, $value);
+        $rows = $this->pessimisticLocking($rows);
+        $fetched = $rows->first();
+
+        return $fetched;
+    }
+
     /**
      * Fetch all records with filtering, sorting, and pagination.
      * 
