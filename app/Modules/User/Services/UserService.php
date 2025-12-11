@@ -74,10 +74,12 @@ class UserService
 
             $result = $user->consumeOneTimePassword($details['otp']);
 
-            if ($result->ok) {
+            if ($result->value === 'ok') {
                 $user->email_verified_at = now();
                 $user->save();
             }
+
+            throw new Exception($result->name);
         } catch (Exception $e) {
             throw $e;
         }
