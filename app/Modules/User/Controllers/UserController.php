@@ -61,7 +61,7 @@ class UserController extends Controller
     {
         try {
             $email = $request->validate([
-                'email' => 'required|email|unique:users,email'
+                'email' => 'required|email|exists:users,email'
             ]);
 
             $this->userService->resendOTP($email);
