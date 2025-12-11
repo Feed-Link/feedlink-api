@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Services;
 
+use App\Modules\User\Jobs\SendOTPJob;
 use App\Modules\User\Repositories\UserRepository;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,7 +12,9 @@ use function Symfony\Component\Clock\now;
 
 class UserService
 {
-    public function __construct(protected UserRepository $userRepository) {}
+    public function __construct(
+        protected UserRepository $userRepository,
+    ) {}
 
     /**
      * ====================================
@@ -26,7 +29,7 @@ class UserService
 
             if (isset($user)) {
                 $user->assignRole($details['role']);
-                $user->sendOneTimePassword();
+                SendOTPJob::dispatch($user);
             }
 
             return $user['email'];
@@ -42,14 +45,14 @@ class UserService
             $user = $this->userRepository->fetchBy('email', $details['email']);
 
             if (
-                is_null($user) &&
+                is_null($user) ||
                 !Auth::attempt($details)
             ) {
                 throw new Exception('Invalid credentials', Response::HTTP_NOT_FOUND);
             }
 
             if (!$user->hasVerifiedEmail()) {
-                $user->sendOneTimePassword();
+                SendOTPJob::dispatch($user);
                 throw new Exception('Email not verified. OTP sent.', Response::HTTP_BAD_REQUEST);
             }
 
@@ -90,7 +93,7 @@ class UserService
         try {
             $user = $this->userRepository->fetchBy('email', $details['email']);
 
-            $user->sendOneTimePassword();
+            SendOTPJob::dispatch($user);
         } catch (Exception $e) {
             throw $e;
         }
