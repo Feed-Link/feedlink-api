@@ -46,7 +46,7 @@ class UserController extends Controller
         try {
             $otp = $request->validate([
                 'otp' => 'required|digits:6',
-                'email' => 'required|email|unique:users,email'
+                'email' => 'required|email|exists:users,email'
             ]);
 
             $this->userService->verifyOTP($otp);
