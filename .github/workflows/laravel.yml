@@ -31,6 +31,16 @@ jobs:
           echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+           
+           # Mailtrap settings
+          echo "MAIL_MAILER=smtp" >> .env
+          echo "MAIL_HOST=live.smtp.mailtrap.io" >> .env
+          echo "MAIL_PORT=587" >> .env
+          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
+          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
+          echo "MAIL_ENCRYPTION=tls" >> .env
+          echo "MAIL_FROM_ADDRESS=noreply@feedlink.tech" >> .env
+          echo "MAIL_FROM_NAME=\"Feedlink\"" >> .env
           # Add other secrets as needed
 
       # 4️⃣ Deploy Laravel App using sudo rsync
