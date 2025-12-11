@@ -8,6 +8,7 @@ use App\Modules\User\Request\SignupRequest;
 use App\Modules\User\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\Request;
 use Exception;
 
 class UserController extends Controller
@@ -19,11 +20,11 @@ class UserController extends Controller
         try {
             $details = $request->validated();
 
-            $this->userService->store($details);
+            $user = $this->userService->store($details);
 
-            return $this->success("Registered Successfully", Response::HTTP_CREATED);
-        } catch (Exception $e) {
-            return $this->error($e->getMessage(), $e->getCode());
+            return $this->success("Registered Successfully", Response::HTTP_CREATED, $user);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
         }
     }
 
@@ -35,8 +36,39 @@ class UserController extends Controller
             $response = $this->userService->login($details);
 
             return $this->success("Logged In Successfully", Response::HTTP_ACCEPTED, $response);
-        } catch (Exception $e) {
-            return $this->error($e->getMessage(), $e->getCode());
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function verifyOTP(Request $request): JsonResponse
+    {
+        try {
+            $otp = $request->validate([
+                'otp' => 'required|digits:6',
+                'email' => 'required|email|unique:users,email'
+            ]);
+
+            $this->userService->verifyOTP($otp);
+
+            return $this->success("OTP Verified Successfully", Response::HTTP_OK);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function resendOTP(Request $request): JsonResponse
+    {
+        try {
+            $email = $request->validate([
+                'email' => 'required|email|unique:users,email'
+            ]);
+
+            $this->userService->resendOTP($email);
+
+            return $this->success("OTP Resend Successfully", Response::HTTP_OK);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
         }
     }
 }
