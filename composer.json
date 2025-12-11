@@ -13,6 +13,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "spatie/laravel-data": "^4.18",
+        "spatie/laravel-one-time-passwords": "^1.0",
         "spatie/laravel-permission": "^6.23"
     },
     "require-dev": {

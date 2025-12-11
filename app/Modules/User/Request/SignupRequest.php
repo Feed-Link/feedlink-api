@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Request;
 
+use App\Modules\Core\Enums\RolesEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SignupRequest extends FormRequest
@@ -25,6 +26,7 @@ class SignupRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
+            'role' => 'required|in:' . implode(',', RolesEnum::getAllValues()),
         ];
     }
 
@@ -42,6 +44,9 @@ class SignupRequest extends FormRequest
             'password.required' => 'The password field is required.',
             'password.string' => 'The password must be a string.',
             'password.min' => 'The password must be at least 6 characters.',
+
+            'role.required' => 'The role field is required.',
+            'role.in' => 'The selected role is invalid.',
         ];
     }
 }

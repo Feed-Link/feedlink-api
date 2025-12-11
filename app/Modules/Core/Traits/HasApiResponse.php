@@ -3,6 +3,7 @@
 namespace App\Modules\Core\Traits;
 
 use Illuminate\Http\JsonResponse;
+use Exception;
 
 trait HasApiResponse
 {
@@ -16,12 +17,12 @@ trait HasApiResponse
         ]);
     }
 
-    public function error(string $message, ?int $statusCode = 400, $data = null): JsonResponse
+    public function handleException(Exception $exception): JsonResponse
     {
         return response()->json([
-            "statusCode" => $statusCode,
-            "message" => $message,
-            "data" => $data
+            "statusCode" => $exception->getCode() ?? 500,
+            "message" => $exception->getMessage() ?? "",
+            "data" => null
         ]);
     }
 }

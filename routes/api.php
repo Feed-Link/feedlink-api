@@ -12,4 +12,6 @@ Route::prefix('auth')
     ->group(function () {
         Route::post('register', [UserController::class, 'register']);
         Route::post('login', [UserController::class, 'login']);
+        Route::post('verify-otp', [UserController::class, 'verifyOTP']);
+        Route::post('resend-otp', [UserController::class, 'resendOTP']);
     });
