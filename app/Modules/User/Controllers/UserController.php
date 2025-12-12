@@ -49,9 +49,9 @@ class UserController extends Controller
                 'email' => 'required|email|exists:users,email'
             ]);
 
-            $this->userService->verifyOTP($otp);
+            $response = $this->userService->verifyOTP($otp);
 
-            return $this->success("OTP Verified Successfully", Response::HTTP_OK);
+            return $this->success("OTP Verified Successfully", Response::HTTP_OK, $response);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
