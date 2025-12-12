@@ -93,6 +93,10 @@ class UserService
         try {
             $user = $this->userRepository->fetchBy('email', $details['email']);
 
+            if (!is_null($user->email_verified_at)) {
+                throw new Exception("User is already verified");
+            }
+            
             SendOTPJob::dispatch($user);
         } catch (Exception $e) {
             throw $e;
