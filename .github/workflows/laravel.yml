@@ -13,7 +13,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2️⃣ Install Composer dependencies
+      # 2️⃣ Install Composer dependencies (no dev for production)
       - name: Install Composer Dependencies
         run: composer install --optimize-autoloader
 
@@ -25,15 +25,14 @@ jobs:
           echo "APP_KEY=${{ secrets.APP_KEY }}" >> .env
           echo "APP_DEBUG=false" >> .env
           echo "APP_URL=${{ secrets.APP_URL }}" >> .env
-
           echo "DB_CONNECTION=pgsql" >> .env
           echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
           echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
           echo "DB_DATABASE=${{ secrets.DB_DATABASE }}" >> .env
           echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-
-          # SMTP2GO
+           
+           # Mailtrap settings
           echo "MAIL_MAILER=smtp" >> .env
           echo "MAIL_HOST=mail.smtp2go.com" >> .env
           echo "MAIL_PORT=2525" >> .env
@@ -41,29 +40,16 @@ jobs:
           echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
           echo "MAIL_ENCRYPTION=tls" >> .env
           echo "MAIL_FROM_ADDRESS=noreply@feedlink.tech" >> .env
-          echo "MAIL_FROM_NAME=Feedlink" >> .env
+          echo "MAIL_FROM_NAME=\"Feedlink\"" >> .env
+          # Add other secrets as needed
 
-      # 4️⃣ Deploy Laravel App (INCLUDING .env)
+      # 4️⃣ Deploy Laravel App using sudo rsync
       - name: Deploy Laravel App
         run: |
-          sudo rsync -av --exclude=".env" ./ /var/www/feedlink-api/
+          sudo rsync -av --exclude='.env' ./ /var/www/feedlink-api/
           sudo chown -R www-data:www-data /var/www/feedlink-api
           sudo chmod -R 775 /var/www/feedlink-api/storage /var/www/feedlink-api/bootstrap/cache
 
-      # 5️⃣ Clear and Cache Config
-      - name: Clear and Cache Config
-        run: |
-          cd /var/www/feedlink-api
-          php artisan config:clear
-          php artisan cache:clear
-
-      # 6️⃣ Restart PHP-FPM
+      # 5️⃣ Restart PHP-FPM to apply changes
       - name: Restart PHP-FPM
         run: sudo systemctl restart php8.4-fpm
-
-      # 7️⃣ OPTIONAL: Restart Supervisor (ONLY if using queue jobs)
-      - name: Restart Supervisor
-        run: |
-          sudo supervisorctl reread
-          sudo supervisorctl update
-          sudo supervisorctl restart all
