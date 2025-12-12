@@ -64,6 +64,19 @@ class UserService
         }
     }
 
+    public function logout(object $request): void
+    {
+        try {
+            $user = $request->user();
+
+            if ($user && $user->token()) {
+                $user->token()->revoke();
+            }
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
     /**
      * ====================================
      *             OTP Section
