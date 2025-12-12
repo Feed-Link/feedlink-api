@@ -46,7 +46,7 @@ jobs:
       # 4️⃣ Deploy Laravel App (INCLUDING .env)
       - name: Deploy Laravel App
         run: |
-          sudo rsync -av ./ /var/www/feedlink-api/
+          sudo rsync -av --exclude=".env" ./ /var/www/feedlink-api/
           sudo chown -R www-data:www-data /var/www/feedlink-api
           sudo chmod -R 775 /var/www/feedlink-api/storage /var/www/feedlink-api/bootstrap/cache
 
