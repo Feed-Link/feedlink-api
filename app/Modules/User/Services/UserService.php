@@ -70,19 +70,23 @@ class UserService
      * ====================================
      */
 
-    public function verifyOTP(array $details): void
+    public function verifyOTP(array $details): string
     {
         try {
             $user = $this->userRepository->fetchBy('email', $details['email']);
 
             $result = $user->consumeOneTimePassword($details['otp']);
 
-            if ($result->value === 'ok') {
-                $user->email_verified_at = now();
-                $user->save();
+            if ($result->value !== 'ok') {
+                throw new Exception($result->name);
             }
 
-            throw new Exception($result->name);
+            $user->email_verified_at = now();
+            $user->save();
+
+            $token = $user->createToken('feedlink-app')->accessToken;
+
+            return $token;
         } catch (Exception $e) {
             throw $e;
         }
@@ -96,7 +100,7 @@ class UserService
             if (!is_null($user->email_verified_at)) {
                 throw new Exception("User is already verified");
             }
-            
+
             SendOTPJob::dispatch($user);
         } catch (Exception $e) {
             throw $e;
