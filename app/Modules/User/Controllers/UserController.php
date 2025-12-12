@@ -41,6 +41,17 @@ class UserController extends Controller
         }
     }
 
+    public function logout(Request $request): JsonResponse
+    {
+        try {
+            $this->userService->logout($request);
+
+            return $this->success("Logged Out Successfully", Response::HTTP_OK);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
     public function verifyOTP(Request $request): JsonResponse
     {
         try {
