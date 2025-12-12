@@ -34,8 +34,8 @@ jobs:
            
            # Mailtrap settings
           echo "MAIL_MAILER=smtp" >> .env
-          echo "MAIL_HOST=live.smtp.mailtrap.io" >> .env
-          echo "MAIL_PORT=587" >> .env
+          echo "MAIL_HOST=mail.smtp2go.com" >> .env
+          echo "MAIL_PORT=2525" >> .env
           echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
           echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
           echo "MAIL_ENCRYPTION=tls" >> .env
