@@ -15,7 +15,7 @@ jobs:
 
       # 2️⃣ Install Composer dependencies
       - name: Install Composer Dependencies
-        run: composer install --optimize-autoloader --no-dev
+        run: composer install --optimize-autoloader
 
       # 3️⃣ Create .env from GitHub Secrets
       - name: Create .env from Secrets
