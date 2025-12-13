@@ -4,14 +4,12 @@ namespace App\Modules\FoodShare\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\FoodShare\Services\FoodListService;
-use App\Modules\FoodShare\Data\FoodListData;
 use App\Modules\FoodShare\Requests\FoodListRequest;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Http\JsonResponse;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Validator;
 
 class FoodListController extends Controller
 {
@@ -40,6 +38,20 @@ class FoodListController extends Controller
 
             DB::commit();
             return $this->success('Food List fetched Successfully', Response::HTTP_OK, $response);
+        } catch (Exception $exception) {
+            DB::rollBack();
+            return $this->handleException($exception);
+        }
+    }
+
+    public function destroy(string $id): JsonResponse
+    {
+        DB::beginTransaction();
+        try {
+            $this->foodlistService->destroy($id);
+
+            DB::commit();
+            return $this->success('Food List deleted Successfully', Response::HTTP_OK);
         } catch (Exception $exception) {
             DB::rollBack();
             return $this->handleException($exception);
