@@ -44,4 +44,13 @@ class FoodListService
             throw $e;
         }
     }
+
+    public function destroy(string $id): void
+    {
+        try {
+            $this->foodlistRepository->delete($id);
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
 }
