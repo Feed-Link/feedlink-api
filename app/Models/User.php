@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
@@ -13,22 +14,26 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory,
-        Notifiable,
-        HasUuids,
-        HasApiTokens,
-        HasRoles,
-        HasOneTimePasswords;
+    use HasFactory;
+    use Notifiable;
+    use HasUuids;
+    use HasApiTokens;
+    use HasRoles;
+    use HasOneTimePasswords;
 
     protected $fillable = [
         'name',
         'email',
+        'contact',
         'password',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'email_verified_at',
+        'created_at',
+        'updated_at'
     ];
 
     protected function casts(): array
@@ -37,5 +42,23 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function food_lists(): HasMany
+    {
+        return $this->hasMany(
+            related: FoodList::class,
+            foreignKey: 'user_id',
+            localKey: 'id'
+        );
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(
+            related: FoodRequest::class,
+            foreignKey: 'user_id',
+            localKey: 'id'
+        );
     }
 }
