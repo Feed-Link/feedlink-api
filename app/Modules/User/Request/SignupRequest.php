@@ -25,6 +25,7 @@ class SignupRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
+            'contact' => 'required|string|max:10',
             'password' => 'required|string|min:6',
             'role' => 'required|in:' . implode(',', RolesEnum::getAllValues()),
         ];
@@ -40,6 +41,10 @@ class SignupRequest extends FormRequest
             'email.required' => 'The email field is required.',
             'email.email' => 'The email must be a valid email address.',
             'email.unique' => 'This email is already registered.',
+
+            'contact.required' => 'The contact field is required.',
+            'contact.string' => 'The contact must be a string.',
+            'contact.max' => 'The contact may not be greater than 10 characters.',
 
             'password.required' => 'The password field is required.',
             'password.string' => 'The password must be a string.',

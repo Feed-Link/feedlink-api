@@ -8,8 +8,8 @@ use PhpCsFixer\Finder;
 return (new Config())
     ->setFinder(
         Finder::create()
-            ->in(__DIR__ . '/src')
-            ->in(__DIR__ . '/tests')
+            ->in(__DIR__ . '/app')       
+            ->in(__DIR__ . '/tests')     
             ->name('*.php')
     )
     ->setRules([
