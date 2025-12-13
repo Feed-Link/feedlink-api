@@ -34,6 +34,7 @@ Route::prefix('foodlist')
     ->group(function () {
         Route::get('/', [FoodListController::class, 'index']);
         Route::get('{id}', [FoodListController::class, 'show']);
+        Route::delete('{id}', [FoodListController::class, 'destroy']);
         Route::post('donate', [FoodListController::class, 'storeDonate'])
             ->middleware('permission:foodlist.create.donate')
             ->name('donate');
