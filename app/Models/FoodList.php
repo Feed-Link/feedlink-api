@@ -29,6 +29,7 @@ class FoodList extends BaseModel
         'type',
         'pickup_within',
         'location',
+        'created_at',
     ];
 
     protected $casts = [

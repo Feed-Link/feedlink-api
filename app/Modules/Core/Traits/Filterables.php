@@ -12,9 +12,10 @@ trait Filterables
     protected int $perPage = 25;
 
     private array $comparisonOperators = [
-        "__gt_" => ">",
-        "__gte_" => ">=",
-
+        '__gt_'  => '>',
+        '__gte_' => '>=',
+        '__lt_'  => '<',
+        '__lte_' => '<=',
     ];
 
     /**
@@ -29,22 +30,22 @@ trait Filterables
     {
         try {
             $rules = [
-                "per_page" => "sometimes|numeric",
-                "page" => "sometimes|numeric",
-                "no_paginate" => "sometimes|boolean",
-                "sort_by" => "sometimes",
-                "sort_order" => "sometimes|in:asc,desc",
-                "search" => "sometimes|string",
-                "filter" => "sometimes|array",
-                "filter.*.filter_by" => "required|string",
-                "filter.*.value" => "required_with:filter.*.filter_by|string",
+                'per_page' => 'sometimes|numeric',
+                'page' => 'sometimes|numeric',
+                'no_paginate' => 'sometimes|boolean',
+                'sort_by' => 'sometimes',
+                'sort_order' => 'sometimes|in:asc,desc',
+                'search' => 'sometimes|string',
+                'filter' => 'sometimes|array',
+                'filter.*.filter_by' => 'required|string',
+                'filter.*.value' => 'required_with:filter.*.filter_by|string',
             ];
             $messages = [
-                "per_page.numeric" => "Per page count must be a number.",
-                "page.numeric" => "Page must be a number.",
-                "sort_order.in" => "Order must be 'asc' or 'desc'.",
-                "search.string" => "Search query must be a string.",
-                "filter_by.string" => "Filter by must be a string.",
+                'per_page.numeric' => 'Per page count must be a number.',
+                'page.numeric' => 'Page must be a number.',
+                'sort_order.in' => "Order must be 'asc' or 'desc'.",
+                'search.string' => 'Search query must be a string.',
+                'filter_by.string' => 'Filter by must be a string.',
             ];
             $validator = Validator::make(
                 data: $params,
@@ -99,7 +100,7 @@ trait Filterables
     {
         try {
             if ($params->search) {
-                $searchable = method_exists($this->model, "getSearchable")
+                $searchable = method_exists($this->model, 'getSearchable')
                     ? $this->model::getSearchable()
                     : $this->model::SEARCHABLE;
 
@@ -124,18 +125,18 @@ trait Filterables
     {
         try {
             if (
-                $params->offsetExists("filter")
+                $params->offsetExists('filter')
                 && !empty($params->filter)
             ) {
-                $searchable = method_exists($this->model, "getSearchable")
+                $searchable = method_exists($this->model, 'getSearchable')
                     ? $this->model::getSearchable()
                     : $this->model::SEARCHABLE;
                 foreach ($params->filter as $filter) {
                     if (
-                        in_array($filter["filter_by"], $searchable)
-                        && Arr::has($filter, ["filter_by", "value"])
+                        in_array($filter['filter_by'], $searchable)
+                        && Arr::has($filter, ['filter_by', 'value'])
                     ) {
-                        $rows = $rows->whereLike($filter["filter_by"], $filter["value"]);
+                        $rows = $rows->whereLike($filter['filter_by'], $filter['value']);
                     }
                 }
             }
@@ -178,8 +179,8 @@ trait Filterables
     protected function loadSorted(object $rows, object $params): object
     {
         try {
-            $sortBy = $params->sort_by ?? "created_at";
-            $rows = $params->sort_order == "asc"
+            $sortBy = $params->sort_by ?? 'created_at';
+            $rows = $params->sort_order == 'asc'
                 ? $rows->oldest($sortBy)
                 : $rows->latest($sortBy);
         } catch (Exception $exception) {
@@ -200,33 +201,31 @@ trait Filterables
     protected function loadCompared(object $rows, object $params): object
     {
         try {
-            $searchable = method_exists($this->model, "getSearchable")
+            $searchable = method_exists($this->model, 'getSearchable')
                 ? $this->model::getSearchable()
                 : $this->model::SEARCHABLE;
             $parameters = array_keys($params->toArray());
 
             $comparisonParameters = array_filter($parameters, function ($parameter) {
-                preg_match("/^__[a-zA-Z]+_/", $parameter, $match);
+                preg_match('/^__[a-zA-Z]+_/', $parameter, $match);
                 return count($match) > 0;
             });
 
             foreach ($comparisonParameters as $comparisonParameter) {
-                preg_match("/^__[a-zA-Z]+_/", $comparisonParameter, $comparison);
+                preg_match('/^__[a-zA-Z]+_/', $comparisonParameter, $comparison);
                 $comparison = end($comparison);
-                $parameter = str_replace($comparison, "", $comparisonParameter);
+                $parameter = str_replace($comparison, '', $comparisonParameter);
                 $compareWith = $params->{$comparisonParameter};
+
                 if (!in_array($parameter, $searchable)) {
                     continue;
                 }
-                if (in_array($this->comparisonOperators[$comparison], $this->searchComparisons)) {
-                    $compareWith = "%{$compareWith}%";
-                } else {
-                    $rows = $rows->where(
-                        $parameter,
-                        $this->comparisonOperators[$comparison],
-                        $compareWith
-                    );
-                }
+
+                $rows = $rows->where(
+                    $parameter,
+                    $this->comparisonOperators[$comparison],
+                    $compareWith
+                );
             }
         } catch (Exception $exception) {
             throw $exception;
@@ -249,7 +248,7 @@ trait Filterables
             $perPage = (int) ($params->per_page ?? $this->perPage);
             $paginate = (bool) $params->no_paginate;
             $resources = !$paginate
-                ? $rows->paginate($perPage)->appends(request()->except("page"))
+                ? $rows->paginate($perPage)->appends(request()->except('page'))
                 : $rows->get();
         } catch (Exception $exception) {
             throw $exception;
