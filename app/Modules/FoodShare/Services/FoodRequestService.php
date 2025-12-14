@@ -17,7 +17,7 @@ class FoodRequestService
             $foodrequest['user_id'] = $userId;
 
             $created = $this->foodrequestRepository->store($foodrequest);
-dd($created);
+
             return $created;
         } catch (Exception $e) {
             throw $e;
