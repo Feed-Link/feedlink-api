@@ -32,6 +32,12 @@ Route::prefix('auth')
 Route::prefix('foodlist')
     ->middleware('auth:api')
     ->group(function () {
+        /**
+         * ====================================
+         *        Food Request Routes
+         * ====================================
+         */
+        Route::post('{id}/request', [FoodRequestController::class, 'requestFood']);
         Route::get('/', [FoodListController::class, 'index']);
         Route::get('{id}', [FoodListController::class, 'show']);
         Route::delete('{id}', [FoodListController::class, 'destroy']);
@@ -41,11 +47,4 @@ Route::prefix('foodlist')
         Route::post('request', [FoodListController::class, 'storeRequest'])
             ->middleware('permission:foodlist.create.request')
             ->name('request');
-
-        /**
-         * ====================================
-         *        Food Request Routes
-         * ====================================
-         */
-        Route::post('{id}/request', [FoodRequestController::class, 'requestFood']);
     });
