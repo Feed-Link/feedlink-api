@@ -22,6 +22,7 @@ return new class() extends Migration {
                 ->references('id')
                 ->on('users');
             $table->enum('status', FoodRequestEnums::getAllValues())->default('pending');
+            $table->text('comments')->nullable();
 
             $table->timestamps();
         });
