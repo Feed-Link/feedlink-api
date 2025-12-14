@@ -3,30 +3,29 @@
 namespace App\Modules\FoodShare\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\FoodShare\Services\FoodListService;
-use App\Modules\FoodShare\Data\FoodListData;
+use App\Modules\FoodShare\Requests\FoodRequest;
+use App\Modules\FoodShare\Services\FoodRequestService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Exception;
 use Symfony\Component\HttpFoundation\Response;
+use Exception;
 
 class FoodRequestController extends Controller
 {
-    public function __construct(protected FoodListService $foodlistService)
-    {
-    }
+    public function __construct(protected FoodRequestService $foodrequestService) {}
 
-    public function store(FoodListData $data, string $type): JsonResponse
+    public function requestFood(FoodRequest $request): JsonResponse
     {
         try {
             DB::beginTransaction();
+            $data = $request->validated();
 
-            $this->foodlistService->store($data, $type);
+            $this->foodrequestService->store($data);
 
             return $this->success('Food Listed Successfully', Response::HTTP_CREATED);
         } catch (Exception $exception) {
             DB::rollBack();
-            $this->handleException($exception);
+            return $this->handleException($exception);
         }
     }
 }

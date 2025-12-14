@@ -11,6 +11,7 @@ class FoodRequest extends BaseModel
         'foodlist_id',
         'user_id',
         'status',
+        'comments'
     ];
 
     public const SEARCHABLE = [
@@ -19,12 +20,12 @@ class FoodRequest extends BaseModel
         'status',
     ];
 
-    public function users(): BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(
             related: User::class,
-            foreignKey:'user_id',
-            ownerKey:'id',
+            foreignKey: 'user_id',
+            ownerKey: 'id',
         );
     }
 
@@ -32,8 +33,8 @@ class FoodRequest extends BaseModel
     {
         return $this->belongsTo(
             related: FoodList::class,
-            foreignKey:'foodlist_id',
-            ownerKey:'id',
+            foreignKey: 'foodlist_id',
+            ownerKey: 'id',
         );
     }
 }

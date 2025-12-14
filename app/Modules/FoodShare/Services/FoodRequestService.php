@@ -2,18 +2,23 @@
 
 namespace App\Modules\FoodShare\Services;
 
-use App\Modules\FoodShare\Data\FoodListData;
-use App\Modules\FoodShare\Repositories\FoodListRepository;
+use App\Modules\FoodShare\Repositories\FoodRequestRepository;
 use Exception;
 
 class FoodRequestService
 {
-    public function __construct(protected FoodListRepository $foodlistRepository) {}
+    public function __construct(protected FoodRequestRepository $foodrequestRepository) {}
 
-    public function store(FoodListData $data, string $type)
+    public function store(array $foodrequest): object
     {
         try {
-            
+            $userId = auth()->user()->id;
+
+            $foodrequest['user_id'] = $userId;
+
+            $created = $this->foodrequestRepository->store($foodrequest);
+dd($created);
+            return $created;
         } catch (Exception $e) {
             throw $e;
         }

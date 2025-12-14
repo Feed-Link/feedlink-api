@@ -1,7 +1,7 @@
 <?php
 
 use App\Modules\FoodShare\Controllers\FoodListController;
-use App\Modules\FoodShare\Enums\FoodListTypeEnums;
+use App\Modules\FoodShare\Controllers\FoodRequestController;
 use App\Modules\User\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,4 +41,14 @@ Route::prefix('foodlist')
         Route::post('request', [FoodListController::class, 'storeRequest'])
             ->middleware('permission:foodlist.create.request')
             ->name('request');
-    });
+    })
+
+    /**
+     * ====================================
+     *        Food Request Routes
+     * ====================================
+     */
+    ->group(function () {
+        Route::post('{id}/request', [FoodRequestController::class, 'requestFood']);
+    })
+;
