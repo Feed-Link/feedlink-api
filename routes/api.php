@@ -41,14 +41,11 @@ Route::prefix('foodlist')
         Route::post('request', [FoodListController::class, 'storeRequest'])
             ->middleware('permission:foodlist.create.request')
             ->name('request');
-    })
 
-    /**
-     * ====================================
-     *        Food Request Routes
-     * ====================================
-     */
-    ->group(function () {
+        /**
+         * ====================================
+         *        Food Request Routes
+         * ====================================
+         */
         Route::post('{id}/request', [FoodRequestController::class, 'requestFood']);
-    })
-;
+    });
