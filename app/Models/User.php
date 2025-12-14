@@ -53,7 +53,7 @@ class User extends Authenticatable implements MustVerifyEmail
         );
     }
 
-    public function orders(): HasMany
+    public function food_requests(): HasMany
     {
         return $this->hasMany(
             related: FoodRequest::class,
