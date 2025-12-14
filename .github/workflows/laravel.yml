@@ -50,6 +50,10 @@ jobs:
           sudo chown -R www-data:www-data /var/www/feedlink-api
           sudo chmod -R 775 /var/www/feedlink-api/storage /var/www/feedlink-api/bootstrap/cache
 
+          # Passport keys MUST be strict
+          sudo chmod 600 /var/www/feedlink-api/storage/oauth-public.key
+          sudo chmod 600 /var/www/feedlink-api/storage/oauth-private.key
+
       # 5️⃣ Restart PHP-FPM to apply changes
       - name: Restart PHP-FPM
         run: sudo systemctl restart php8.4-fpm
