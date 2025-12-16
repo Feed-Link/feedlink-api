@@ -247,9 +247,19 @@ trait Filterables
         try {
             $perPage = (int) ($params->per_page ?? $this->perPage);
             $paginate = (bool) $params->no_paginate;
-            $resources = !$paginate
-                ? $rows->paginate($perPage)->appends(request()->except('page'))
-                : $rows->get();
+            $infinite = (bool) $params->infinite;
+            $resources = null;
+            if ($infinite) {
+                $resources = $rows
+                    ->cursorPaginate($perPage)
+                    ->withQueryString();
+            } elseif ($paginate) {
+                $resources = $rows
+                    ->paginate($perPage)
+                    ->appends(request()->except('page'));
+            } else {
+                $resources = $rows->get();
+            }
         } catch (Exception $exception) {
             throw $exception;
         }
