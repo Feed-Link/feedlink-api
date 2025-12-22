@@ -28,6 +28,9 @@ class SignupRequest extends FormRequest
             'contact' => 'required|string|max:10',
             'password' => 'required|string|min:6',
             'role' => 'required|in:' . implode(',', RolesEnum::getAllValues()),
+            'location'      => ['required', 'array'],
+            'location.lat'  => ['required_with:location', 'numeric', 'between:-90,90'],
+            'location.long' => ['required_with:location', 'numeric', 'between:-180,180']
         ];
     }
 
