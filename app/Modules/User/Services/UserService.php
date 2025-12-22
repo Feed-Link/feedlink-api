@@ -47,7 +47,7 @@ class UserService
 
             if (
                 is_null($user) ||
-                !Auth::attempt($details)
+                !Auth::guard('web')->attempt($details)
             ) {
                 throw new Exception('Invalid credentials', Response::HTTP_NOT_FOUND);
             }
