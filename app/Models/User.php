@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +28,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'contact',
         'password',
+        'location'
     ];
 
     protected $hidden = [
@@ -41,7 +44,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'location' => Point::class
         ];
+    }
+
+    protected function location(): Attribute
+    {
+        return Attribute::make(
+            set: fn($value) => is_array($value)
+                && isset($value['lat'], $value['long'])
+                ? Point::make($value['long'], $value['lat'])
+                : $value
+        );
     }
 
     public function food_lists(): HasMany
