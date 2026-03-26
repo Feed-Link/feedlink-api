@@ -13,8 +13,10 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 use Spatie\Permission\Traits\HasRoles;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, FilamentUser
 {
     use HasFactory;
     use Notifiable;
@@ -34,6 +36,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'location',
         'email_verified_at',
         'created_at',
         'updated_at'
@@ -53,7 +56,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return Attribute::make(
             set: fn($value) => is_array($value)
                 && isset($value['lat'], $value['long'])
-                ? Point::make($value['long'], $value['lat'])
+                ? Point::make($value['long'], $value['lat'], 4326)
                 : $value
         );
     }
@@ -74,5 +77,9 @@ class User extends Authenticatable implements MustVerifyEmail
             foreignKey: 'user_id',
             localKey: 'id'
         );
+    }
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->hasRole('admin');
     }
 }

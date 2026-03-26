@@ -6,7 +6,7 @@ use App\Models\Role;
 return [
 
     'defaults' => [
-        'guard' => 'api',
+        'guard' => 'web',
     ],
 
     'models' => [

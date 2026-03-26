@@ -40,3 +40,5 @@ rr
 **/caddy
 frankenphp
 frankenphp-worker.php
+
+*.md

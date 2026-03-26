@@ -8,6 +8,7 @@
         "php": "^8.2",
         "clickbar/laravel-magellan": "^2.0",
         "doctrine/dbal": "^4.4",
+        "filament/filament": "^5.4",
         "laravel/framework": "^11.0",
         "laravel/octane": "^2.13",
         "laravel/passport": "^13.0",
@@ -43,7 +44,8 @@
     "scripts": {
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
+            "@php artisan package:discover --ansi",
+            "@php artisan filament:upgrade"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
@@ -72,6 +74,9 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "audit": {
+            "block-insecure": false
         }
     },
     "minimum-stability": "stable",
