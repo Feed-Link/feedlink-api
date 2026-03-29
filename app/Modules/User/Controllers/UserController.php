@@ -5,6 +5,8 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Request\LoginRequest;
 use App\Modules\User\Request\SignupRequest;
+use App\Modules\User\Request\ForgotPasswordRequest;
+use App\Modules\User\Request\ResetPasswordRequest;
 use App\Modules\User\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,7 +15,9 @@ use Exception;
 
 class UserController extends Controller
 {
-    public function __construct(protected UserService $userService) {}
+    public function __construct(protected UserService $userService)
+    {
+    }
 
     public function register(SignupRequest $request): JsonResponse
     {
@@ -22,7 +26,7 @@ class UserController extends Controller
 
             $user = $this->userService->store($details);
 
-            return $this->success("Registered Successfully", Response::HTTP_CREATED, $user);
+            return $this->success('Registered Successfully', Response::HTTP_CREATED, $user);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
@@ -35,7 +39,7 @@ class UserController extends Controller
 
             $response = $this->userService->login($details);
 
-            return $this->success("Logged In Successfully", Response::HTTP_ACCEPTED, $response);
+            return $this->success('Logged In Successfully', Response::HTTP_ACCEPTED, $response);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
@@ -44,9 +48,9 @@ class UserController extends Controller
     public function logout(Request $request): JsonResponse
     {
         try {
-            $this->userService->logout($request);
+            $this->userService->logout($request, $request->input('refresh_token'));
 
-            return $this->success("Logged Out Successfully", Response::HTTP_OK);
+            return $this->success('Logged Out Successfully', Response::HTTP_OK);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
@@ -57,12 +61,12 @@ class UserController extends Controller
         try {
             $otp = $request->validate([
                 'otp' => 'required|digits:6',
-                'email' => 'required|email|exists:users,email'
+                'email' => 'required|email|exists:users,email',
             ]);
 
             $response = $this->userService->verifyOTP($otp);
 
-            return $this->success("OTP Verified Successfully", Response::HTTP_OK, $response);
+            return $this->success('OTP Verified Successfully', Response::HTTP_OK, $response);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
@@ -72,12 +76,50 @@ class UserController extends Controller
     {
         try {
             $email = $request->validate([
-                'email' => 'required|email|exists:users,email'
+                'email' => 'required|email|exists:users,email',
             ]);
 
             $this->userService->resendOTP($email);
 
-            return $this->success("OTP Resend Successfully", Response::HTTP_OK);
+            return $this->success('OTP Resend Successfully', Response::HTTP_OK);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function refreshToken(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'refresh_token' => 'required|string',
+            ]);
+
+            $response = $this->userService->refreshToken($validated['refresh_token']);
+
+            return $this->success('Token Refreshed Successfully', Response::HTTP_OK, $response);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        try {
+            $details = $request->validated();
+            $this->userService->forgotPassword($details);
+
+            return $this->success('Password reset OTP sent successfully', Response::HTTP_OK);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        try {
+            $details = $request->validated();
+            $response = $this->userService->resetPassword($details);
+
+            return $this->success('Password reset successfully', Response::HTTP_OK, $response);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }

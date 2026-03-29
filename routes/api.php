@@ -22,6 +22,9 @@ Route::prefix('auth')
         Route::get('logout', [UserController::class, 'logout'])->middleware('auth:api');
         Route::post('verify-otp', [UserController::class, 'verifyOTP']);
         Route::post('resend-otp', [UserController::class, 'resendOTP']);
+        Route::post('refresh-token', [UserController::class, 'refreshToken']);
+        Route::post('forgot-password', [UserController::class, 'forgotPassword']);
+        Route::post('reset-password', [UserController::class, 'resetPassword']);
     });
 
 /**
