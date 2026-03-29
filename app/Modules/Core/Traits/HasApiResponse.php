@@ -11,7 +11,7 @@ trait HasApiResponse
     public function success(string $message, ?int $statusCode = 200, $data = null): JsonResponse
     {
         return response()->json([
-            "statusCode" => $statusCode,
+            "status_code" => $statusCode,
             "message" => $message,
             "data" => $data
         ]);
@@ -20,7 +20,7 @@ trait HasApiResponse
     public function handleException(Exception $exception): JsonResponse
     {
         return response()->json([
-            "statusCode" => $exception->getCode() ?? 500,
+            "status_code" => $exception->getCode() ?? 500,
             "message" => $exception->getMessage() ?? "",
             "data" => null
         ]);
