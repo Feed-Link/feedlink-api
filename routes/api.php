@@ -1,7 +1,5 @@
 <?php
 
-use App\Modules\FoodShare\Controllers\FoodListController;
-use App\Modules\FoodShare\Controllers\FoodRequestController;
 use App\Modules\User\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,29 +23,4 @@ Route::prefix('auth')
         Route::post('refresh-token', [UserController::class, 'refreshToken']);
         Route::post('forgot-password', [UserController::class, 'forgotPassword']);
         Route::post('reset-password', [UserController::class, 'resetPassword']);
-    });
-
-/**
- * ====================================
- *        Food Listings Routes
- * ====================================
- */
-Route::prefix('foodlist')
-    ->middleware('auth:api')
-    ->group(function () {
-        /**
-         * ====================================
-         *        Food Request Routes
-         * ====================================
-         */
-        Route::post('{id}/request', [FoodRequestController::class, 'requestFood']);
-        Route::get('/', [FoodListController::class, 'index']);
-        Route::get('{id}', [FoodListController::class, 'show']);
-        Route::delete('{id}', [FoodListController::class, 'destroy']);
-        Route::post('donate', [FoodListController::class, 'storeDonate'])
-            ->middleware('permission:foodlist.create.donate')
-            ->name('donate');
-        Route::post('request', [FoodListController::class, 'storeRequest'])
-            ->middleware('permission:foodlist.create.request')
-            ->name('request');
     });
