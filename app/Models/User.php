@@ -58,21 +58,4 @@ class User extends Authenticatable implements MustVerifyEmail
         );
     }
 
-    public function food_lists(): HasMany
-    {
-        return $this->hasMany(
-            related: FoodList::class,
-            foreignKey: 'user_id',
-            localKey: 'id'
-        );
-    }
-
-    public function food_requests(): HasMany
-    {
-        return $this->hasMany(
-            related: FoodRequest::class,
-            foreignKey: 'user_id',
-            localKey: 'id'
-        );
-    }
 }
