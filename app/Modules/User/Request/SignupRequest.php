@@ -57,4 +57,20 @@ class SignupRequest extends FormRequest
             'role.in' => 'The selected role is invalid.',
         ];
     }
+
+    /**
+     * Transform location array into separate lat/long fields
+     */
+    public function validated($key = null, $default = null)
+    {
+        $data = parent::validated($key, $default);
+
+        if (is_array($data) && isset($data['location'])) {
+            $data['latitude'] = $data['location']['lat'];
+            $data['longitude'] = $data['location']['long'];
+            unset($data['location']);
+        }
+
+        return $data;
+    }
 }

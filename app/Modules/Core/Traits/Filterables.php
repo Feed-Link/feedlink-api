@@ -9,7 +9,7 @@ use Illuminate\Support\Fluent;
 
 trait Filterables
 {
-    protected int $perPage = 25;
+    protected int $defaultItemsPerPage = 25;
 
     private array $comparisonOperators = [
         '__gt_'  => '>',
@@ -245,20 +245,20 @@ trait Filterables
     protected function loadPaginated(object $rows, object $params): object
     {
         try {
-            $perPage = (int) ($params->per_page ?? $this->perPage);
-            $paginate = (bool) $params->no_paginate;
+            $perPage = (int) ($params->per_page ?? $this->defaultItemsPerPage);
+            $noPaginate = (bool) $params->no_paginate;
             $infinite = (bool) $params->infinite;
             $resources = null;
             if ($infinite) {
                 $resources = $rows
                     ->cursorPaginate($perPage)
                     ->withQueryString();
-            } elseif ($paginate) {
+            } elseif ($noPaginate) {
+                $resources = $rows->get();
+            } else {
                 $resources = $rows
                     ->paginate($perPage)
                     ->appends(request()->except('page'));
-            } else {
-                $resources = $rows->get();
             }
         } catch (Exception $exception) {
             throw $exception;

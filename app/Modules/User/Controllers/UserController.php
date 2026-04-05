@@ -11,6 +11,7 @@ use App\Modules\User\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Exception;
 
 class UserController extends Controller
@@ -120,6 +121,87 @@ class UserController extends Controller
             $response = $this->userService->resetPassword($details);
 
             return $this->success('Password reset successfully', Response::HTTP_OK, $response);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    /**
+     * GET /api/user/profile
+     */
+    public function profile(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                throw new Exception('User not found', Response::HTTP_NOT_FOUND);
+            }
+
+            return $this->success(
+                'Profile retrieved successfully',
+                Response::HTTP_OK,
+                [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'contact' => $user->contact,
+                    'is_verified' => (bool) ($user->is_verified ?? false),
+                    'profile_photo' => $user->profile_photo,
+                    'latitude' => $user->latitude,
+                    'longitude' => $user->longitude,
+                    'location' => $user->latitude && $user->longitude ? [
+                        'lat' => (float) $user->latitude,
+                        'lng' => (float) $user->longitude,
+                    ] : null,
+                    'roles' => $user->roles->pluck('name'),
+                ]
+            );
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    /**
+     * PUT /api/user/profile
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                throw new Exception('User not found', Response::HTTP_NOT_FOUND);
+            }
+
+            $validated = $request->validate([
+                'name' => 'sometimes|string|max:255',
+                'contact' => 'sometimes|string|max:20',
+                'profile_photo' => 'sometimes|string',
+            ]);
+
+            $user->update($validated);
+            $user->refresh();
+
+            return $this->success(
+                'Profile updated successfully',
+                Response::HTTP_OK,
+                [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'contact' => $user->contact,
+                    'is_verified' => (bool) ($user->is_verified ?? false),
+                    'profile_photo' => $user->profile_photo,
+                    'latitude' => $user->latitude,
+                    'longitude' => $user->longitude,
+                    'location' => $user->latitude && $user->longitude ? [
+                        'lat' => (float) $user->latitude,
+                        'lng' => (float) $user->longitude,
+                    ] : null,
+                    'roles' => $user->roles->pluck('name'),
+                ]
+            );
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }

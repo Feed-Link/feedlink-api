@@ -28,7 +28,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'contact',
         'password',
-        'location'
+        'latitude',
+        'longitude',
+        'location',
+        'is_verified',
+        'profile_photo'
     ];
 
     protected $hidden = [
@@ -44,18 +48,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'location' => Point::class
         ];
     }
 
-    protected function location(): Attribute
+    /**
+     * Boot the model to automatically create Point geometry when lat/long are set
+     */
+    protected static function booted()
     {
-        return Attribute::make(
-            set: fn($value) => is_array($value)
-                && isset($value['lat'], $value['long'])
-                ? Point::make($value['long'], $value['lat'])
-                : $value
-        );
+        static::saving(function ($user) {
+            if ($user->latitude && $user->longitude && !$user->location) {
+                $user->location = Point::makeGeodetic($user->latitude, $user->longitude);
+            }
+        });
     }
 
 }
