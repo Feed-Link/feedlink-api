@@ -24,5 +24,29 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (Throwable $e) {
+            // Handle expired JWT tokens
+            if ($e instanceof \Lcobucci\JWT\Validation\RequiredConstraintsViolated) {
+                return response()->json([
+                    'message' => 'Token expired or invalid',
+                    'error' => 'token_expired',
+                ], 401);
+            }
+
+            // Handle other JWT validation errors
+            if ($e instanceof \Lcobucci\JWT\Validation\FailedValidation) {
+                return response()->json([
+                    'message' => 'Invalid token',
+                    'error' => 'invalid_token',
+                ], 401);
+            }
+
+            // Handle missing or invalid bearer token
+            if ($e instanceof \League\OAuth2\Server\Exception\OAuthServerException) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'error' => 'unauthorized',
+                ], 401);
+            }
+        });
     })->create();

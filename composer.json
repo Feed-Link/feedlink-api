@@ -7,6 +7,7 @@
     "require": {
         "php": "^8.2",
         "clickbar/laravel-magellan": "^2.0",
+        "darkaonline/l5-swagger": "^2.1",
         "doctrine/dbal": "^4.4",
         "laravel/framework": "^11.0",
         "laravel/octane": "^2.13",
