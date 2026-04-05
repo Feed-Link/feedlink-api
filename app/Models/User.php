@@ -13,6 +13,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 use Spatie\Permission\Traits\HasRoles;
+use App\Modules\FoodSafety\Entities\UserAcceptance;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -61,6 +62,11 @@ class User extends Authenticatable implements MustVerifyEmail
                 $user->location = Point::makeGeodetic($user->latitude, $user->longitude);
             }
         });
+    }
+
+    public function acceptances(): HasMany
+    {
+        return $this->hasMany(UserAcceptance::class);
     }
 
 }
