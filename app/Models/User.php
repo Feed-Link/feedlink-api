@@ -13,6 +13,10 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 use Spatie\Permission\Traits\HasRoles;
+use App\Modules\FoodSafety\Entities\UserAcceptance;
+use App\Modules\FoodSafety\Entities\IllnessClaim;
+use App\Modules\FoodSafety\Entities\DonorWarning;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -61,6 +65,26 @@ class User extends Authenticatable implements MustVerifyEmail
                 $user->location = Point::makeGeodetic($user->latitude, $user->longitude);
             }
         });
+    }
+
+    public function acceptances(): HasMany
+    {
+        return $this->hasMany(UserAcceptance::class);
+    }
+
+    public function illnessClaims(): HasMany
+    {
+        return $this->hasMany(IllnessClaim::class, 'reporter_id');
+    }
+
+    public function claimsAgainstMe(): HasMany
+    {
+        return $this->hasMany(IllnessClaim::class, 'donor_id');
+    }
+
+    public function warning(): HasOne
+    {
+        return $this->hasOne(DonorWarning::class, 'donor_id');
     }
 
 }
