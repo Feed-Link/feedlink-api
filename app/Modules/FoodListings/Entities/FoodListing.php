@@ -7,14 +7,17 @@ use App\Modules\Core\Entities\BaseModel;
 use App\Modules\Core\Entities\Tag;
 use App\Modules\Core\Traits\Filterables;
 use Clickbar\Magellan\Data\Geometries\Point;
+use Database\Factories\FoodListingFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FoodListing extends BaseModel
 {
     use Filterables;
     use HasUuids;
+    use HasFactory;
 
     protected $table = 'food_listings';
 
@@ -58,6 +61,11 @@ class FoodListing extends BaseModel
         'completed',
         'expired',
     ];
+
+    protected static function newFactory()
+    {
+        return FoodListingFactory::new();
+    }
 
     protected function location(): Attribute
     {

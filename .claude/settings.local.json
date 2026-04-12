@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan:*)",
+      "Bash(python -m json.tool)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
