@@ -422,7 +422,51 @@ Schedule::command('feedlink:expire-requests')->everyFiveMinutes();
 
 ---
 
-## 9. Prompt Template for Claude
+## 9. Coding Conventions
+
+> **MANDATORY FOR ALL CODING TASKS:** Before writing any PHP code in this project (new modules, controllers, services, repositories, models, requests), you **MUST** load and follow the `modular-monolithic-pattern` skill. No exceptions.
+
+
+
+### 9.1 Request Classes
+
+All Form Request classes **must** extend `App\Modules\Core\Requests\BaseRequest`, never `Illuminate\Foundation\Http\FormRequest` directly.
+
+`BaseRequest` automatically routes validation to `store()` (POST) or `update()` (PUT/PATCH) based on the HTTP method. Override these methods instead of `rules()`:
+
+```php
+use App\Modules\Core\Requests\BaseRequest;
+
+class CreateListingRequest extends BaseRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function store(): array
+    {
+        return [
+            'title' => 'required|string|max:255',
+            // ...
+        ];
+    }
+
+    public function update(): array
+    {
+        return [
+            'title' => 'sometimes|string|max:255',
+            // ...
+        ];
+    }
+}
+```
+
+> Do not override `rules()` — override `store()` and `update()` instead.
+
+---
+
+## 10. Prompt Template for Claude
 
 Use the block below as your prompt when asking Claude to implement a specific phase or feature:
 
@@ -463,7 +507,7 @@ then form request, then API resource, then route registration.
 
 ---
 
-## 10. Example Response Shapes
+## 11. Example Response Shapes
 
 ### Food Listing (active)
 ```json
@@ -536,7 +580,7 @@ then form request, then API resource, then route registration.
 
 ---
 
-## 11. Notes & Gotchas
+## 12. Notes & Gotchas
 
 1. **Magellan geography vs geometry** – Use `geography` (SRID 4326) for distance accuracy in km. `geometry` uses flat-earth math.
 3. **Multiple claims** – A listing can receive multiple claim requests, but only **one** can be confirmed. Rejecting others on confirmation is required.

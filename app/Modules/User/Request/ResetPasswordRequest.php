@@ -2,10 +2,10 @@
 
 namespace App\Modules\User\Request;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Modules\Core\Requests\BaseRequest;
 use Illuminate\Validation\Rules\Password;
 
-class ResetPasswordRequest extends FormRequest
+class ResetPasswordRequest extends BaseRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -20,7 +20,7 @@ class ResetPasswordRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
+    public function store(): array
     {
         return [
             'email' => ['required', 'email', 'exists:users,email'],

@@ -3,9 +3,9 @@
 namespace App\Modules\User\Request;
 
 use App\Modules\Core\Enums\RolesEnum;
-use Illuminate\Foundation\Http\FormRequest;
+use App\Modules\Core\Requests\BaseRequest;
 
-class SignupRequest extends FormRequest
+class SignupRequest extends BaseRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -20,7 +20,7 @@ class SignupRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
+    public function store(): array
     {
         return [
             'name' => 'required|string|max:255',
