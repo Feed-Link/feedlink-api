@@ -2,9 +2,9 @@
 
 namespace App\Modules\User\Request;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Modules\Core\Requests\BaseRequest;
 
-class ForgotPasswordRequest extends FormRequest
+class ForgotPasswordRequest extends BaseRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -19,7 +19,7 @@ class ForgotPasswordRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
+    public function store(): array
     {
         return [
             'email' => ['required', 'email', 'exists:users,email'],
