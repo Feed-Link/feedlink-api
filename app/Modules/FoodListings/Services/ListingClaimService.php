@@ -2,8 +2,9 @@
 
 namespace App\Modules\FoodListings\Services;
 
-use App\Modules\FoodListings\Repositories\ListingClaimRepository;
 use App\Modules\FoodListings\Entities\ListingClaim;
+use App\Modules\FoodListings\Repositories\ListingClaimRepository;
+use App\Modules\Notifications\Jobs\SendClaimNotificationJob;
 use Exception;
 
 class ListingClaimService
@@ -18,19 +19,25 @@ class ListingClaimService
             throw new Exception('You already have a pending claim on this listing', 400);
         }
 
-        return $this->listingClaimRepository->store([
+        $claim = $this->listingClaimRepository->store([
             'food_listing_id' => $listingId,
             'recipient_id' => $recipientId,
             'status' => 'pending',
             'note' => $note,
         ]);
+
+        SendClaimNotificationJob::dispatch(
+            $claim->load(['listing.donor', 'recipient'])
+        );
+
+        return $claim;
     }
 
     public function cancelClaim(string $claimId, string $recipientId): void
     {
         $claim = $this->listingClaimRepository->fetchBy('id', $claimId);
 
-        if (!$claim) {
+        if (! $claim) {
             throw new Exception('Claim not found', 404);
         }
 
@@ -49,7 +56,7 @@ class ListingClaimService
     {
         $claim = $this->listingClaimRepository->fetchByClaim($foodListingId, $recipientId);
 
-        if (!$claim) {
+        if (! $claim) {
             throw new Exception('Claim not found', 404);
         }
 
