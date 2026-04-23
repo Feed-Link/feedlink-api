@@ -19,36 +19,23 @@ class NotificationService
 
     public function getForUser(string $userId, array $params = []): LengthAwarePaginator
     {
-        $perPage = $params['per_page'] ?? 15;
+        $perPage = (int) ($params['per_page'] ?? 15);
 
-        return Notification::query()
-            ->where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+        return $this->notificationRepository->getForUser($userId, $perPage);
     }
 
     public function getUnreadCount(string $userId): int
     {
-        return Notification::query()
-            ->where('user_id', $userId)
-            ->whereNull('read_at')
-            ->count();
+        return $this->notificationRepository->getUnreadCount($userId);
     }
 
     public function markAsRead(string $notificationId, string $userId): void
     {
-        Notification::query()
-            ->where('id', $notificationId)
-            ->where('user_id', $userId)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        $this->notificationRepository->markAsRead($notificationId, $userId);
     }
 
     public function markAllAsRead(string $userId): void
     {
-        Notification::query()
-            ->where('user_id', $userId)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        $this->notificationRepository->markAllAsRead($userId);
     }
 }
