@@ -45,7 +45,6 @@ Documentation must include:
 
 This project uses:
 - **Laravel 12** with streamlined file structure
-- **Octane v2** for production performance
 - **Passport v13** for API authentication
 - **Spatie Permission** for role-based access control
 - **PHPUnit v11** for testing (all tests must pass before finalizing)
