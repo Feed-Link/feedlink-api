@@ -65,6 +65,7 @@ Validation failures (`422`) may return Laravel validation error format.
 | PUT | `/user/location` | Yes | Any |
 | GET | `/user/profile` | Yes | Any |
 | PUT | `/user/profile` | Yes | Any |
+| POST | `/upload/photo` | Yes | Any |
 
 ---
 
@@ -729,6 +730,33 @@ Get current profile.
   }
 }
 ```
+
+### POST `/upload/photo`
+Upload a photo to Cloudinary. Call this **before** creating a listing — upload each photo first, collect the returned URLs, then include them in the `photos` array of `POST /donor/listings`.
+
+**Request:** `multipart/form-data`
+
+| Field | Type | Rules |
+|---|---|---|
+| `photo` | file | required, image, max 5MB, jpg/jpeg/png/webp |
+
+**Response (201):**
+```json
+{
+  "status_code": 201,
+  "message": "Photo uploaded successfully",
+  "data": {
+    "url": "https://res.cloudinary.com/feedlink/image/upload/v.../feedlink/listings/abc123.jpg",
+    "public_id": "feedlink/listings/abc123"
+  }
+}
+```
+
+**Error cases:**
+- `422` Missing or invalid file
+- `500` Cloudinary upload failed
+
+---
 
 ### PUT `/user/profile`
 Update profile.

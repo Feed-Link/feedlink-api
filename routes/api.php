@@ -5,6 +5,7 @@ use App\Modules\FoodListings\Controllers\RecipientFoodListingController;
 use App\Modules\FoodListings\Controllers\NearbyListingController;
 use App\Modules\FoodListings\Controllers\NearbyRequestController;
 use App\Modules\FoodListings\Controllers\UserLocationController;
+use App\Modules\Upload\Controllers\UploadController;
 use App\Modules\User\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -75,4 +76,5 @@ Route::middleware(['auth:api'])
         Route::put('user/location', [UserLocationController::class, 'update']);
         Route::get('user/profile', [UserController::class, 'profile']);
         Route::put('user/profile', [UserController::class, 'updateProfile']);
+        Route::post('upload/photo', [UploadController::class, 'photo']);
     });

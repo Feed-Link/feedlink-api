@@ -41,7 +41,7 @@ jobs:
           echo "MAIL_ENCRYPTION=tls" >> .env
           echo "MAIL_FROM_ADDRESS=noreply@feedlink.tech" >> .env
           echo "MAIL_FROM_NAME=\"Feedlink\"" >> .env
-          # Add other secrets as needed
+          echo "CLOUDINARY_URL=${{ secrets.CLOUDINARY_URL }}" >> .env
 
       # 4️⃣ Deploy Laravel App using sudo rsync
       - name: Deploy Laravel App

@@ -10,6 +10,7 @@
     "require": {
         "php": "^8.2",
         "clickbar/laravel-magellan": "^2.0",
+        "cloudinary/cloudinary_php": "^3.1",
         "darkaonline/l5-swagger": "^2.1",
         "doctrine/dbal": "^4.4",
         "laravel/framework": "^12.0",
