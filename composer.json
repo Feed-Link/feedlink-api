@@ -2,14 +2,17 @@
     "name": "laravel/laravel",
     "type": "project",
     "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "keywords": [
+        "laravel",
+        "framework"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.2",
         "clickbar/laravel-magellan": "^2.0",
         "darkaonline/l5-swagger": "^2.1",
         "doctrine/dbal": "^4.4",
-        "laravel/framework": "^11.0",
+        "laravel/framework": "^12.0",
         "laravel/octane": "^2.13",
         "laravel/passport": "^13.0",
         "laravel/sanctum": "^4.0",
@@ -22,12 +25,13 @@
     "require-dev": {
         "fakerphp/faker": "^1.23",
         "friendsofphp/php-cs-fixer": "^3.91",
+        "laravel/boost": "^2.4",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.48",
         "laravel/telescope": "^5.15",
         "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.0",
-        "phpunit/phpunit": "^10.5",
+        "nunomaduro/collision": "^8.6",
+        "phpunit/phpunit": "^11.0",
         "spatie/laravel-ignition": "^2.4"
     },
     "autoload": {

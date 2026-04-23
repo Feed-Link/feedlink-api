@@ -5,7 +5,12 @@
       "Bash(python -m json.tool)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "mcp__plugin_serena_serena__activate_project"
+      "mcp__plugin_serena_serena__activate_project",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8000)",
+      "Bash(timeout 5 bash *)",
+      "Bash(curl *)",
+      "Bash(ssh *)"
     ]
   }
 }
