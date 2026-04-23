@@ -1,133 +1,166 @@
-# FeedLink API Documentation
+# FeedLink API Documentation (Implementation-Accurate)
 
-> **Base URL:** `https://api.feedlink.tech`  
-> **Version:** 1.0  
-> **Authentication:** Laravel Passport Bearer Token  
-> **Content Type:** `application/json`
-
----
-
-## Table of Contents
-
-1. [Authentication Flow](#1-authentication-flow)
-2. [Auth Endpoints](#2-auth-endpoints)
-3. [Donor Endpoints](#3-donor-endpoints)
-4. [Recipient Endpoints](#4-recipient-endpoints)
-5. [Shared Endpoints](#5-shared-endpoints)
-6. [Error Responses](#6-error-responses)
-7. [Role Access Matrix](#7-role-access-matrix)
-8. [Available Tags Reference](#8-available-tags-reference)
-9. [iOS Quick Start](#9-ios-quick-start)
+> **Base URL:** `https://api.feedlink.tech/api`  
+> **Authentication:** `Authorization: Bearer {access_token}` (Laravel Passport)  
+> **Primary source:** `routes/api.php` + controller logic + request validation rules
 
 ---
 
-## 1. Authentication Flow
+## 1. Global Response Format
 
-```
-1. POST /api/auth/register   →  Create account (role: donor|recipient)
-2. POST /api/auth/login      →  Get access_token + refresh_token
-3. POST /api/auth/verify-otp →  Verify email OTP
-4. All subsequent requests:  Authorization: Bearer {access_token}
-5. When access_token expires: POST /api/auth/refresh-token
-```
-
-### Response Envelope
-
-Every API response follows this format:
+All controller success responses use:
 
 ```json
 {
   "status_code": 200,
   "message": "Success message",
-  "data": { ... or [...] }
+  "data": {}
 }
 ```
 
+For paginated responses, `meta` and `links` are also returned.
+
+Error responses use:
+
+```json
+{
+  "status_code": 400,
+  "message": "Error message",
+  "data": null
+}
+```
+
+Validation failures (`422`) may return Laravel validation error format.
+
 ---
 
-## 2. Auth Endpoints
+## 2. Route List (Current)
 
-### POST /api/auth/register
+| Method | Path | Auth | Role |
+|---|---|---|---|
+| GET | `/` | No | Public |
+| POST | `/auth/register` | No | Public |
+| POST | `/auth/login` | No | Public |
+| GET | `/auth/logout` | Yes | Any |
+| POST | `/auth/verify-otp` | No | Public |
+| POST | `/auth/resend-otp` | No | Public |
+| POST | `/auth/refresh-token` | No | Public |
+| POST | `/auth/forgot-password` | No | Public |
+| POST | `/auth/reset-password` | No | Public |
+| GET | `/donor/listings` | Yes | donor |
+| POST | `/donor/listings` | Yes | donor |
+| GET | `/donor/listings/{id}` | Yes | donor |
+| PUT | `/donor/listings/{id}` | Yes | donor |
+| DELETE | `/donor/listings/{id}` | Yes | donor |
+| GET | `/donor/listings/{listingId}/claims` | Yes | donor |
+| POST | `/donor/listings/{listingId}/claims/{claimId}/confirm` | Yes | donor |
+| POST | `/donor/listings/{listingId}/claims/{claimId}/reject` | Yes | donor |
+| GET | `/recipient/listings` | Yes | recipient |
+| GET | `/recipient/listings/{id}` | Yes | recipient |
+| POST | `/recipient/listings/{listingId}/claim` | Yes | recipient |
+| DELETE | `/recipient/listings/{listingId}/claim` | Yes | recipient |
+| GET | `/recipient/claims` | Yes | recipient |
+| GET | `/listings/nearby` | Yes | Any |
+| GET | `/requests/nearby` | Yes | Any |
+| PUT | `/user/location` | Yes | Any |
+| GET | `/user/profile` | Yes | Any |
+| PUT | `/user/profile` | Yes | Any |
 
-Create a new user account.
+---
 
-**Body:**
+## 3. Auth + Public Endpoints
+
+### GET `/`
+Health endpoint.
+
+**Response (200):**
+```json
+{
+  "message": "Application is running"
+}
+```
+
+### POST `/auth/register`
+Register user.
+
+**Request body:**
 ```json
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "password": "securepassword",
-  "phone": "9841000000",
-  "role": "donor"
+  "contact": "9841000000",
+  "password": "secret123",
+  "role": "donor",
+  "location": {
+    "lat": 27.7172,
+    "long": 85.3240
+  }
 }
 ```
 
-| Field | Type | Required |
-|---|---|---|
-| `name` | string | Yes |
-| `email` | string, email | Yes |
-| `password` | string, min:8 | Yes |
-| `phone` | string | Yes |
-| `role` | string: `donor` \| `recipient` | Yes |
+**Validation:**
+- `name`: required|string|max:255
+- `email`: required|email|unique:users,email
+- `contact`: required|string|max:10
+- `password`: required|string|min:6
+- `role`: required|in:donor,recipient
+- `location`: required|array
+- `location.lat`: required_with:location|numeric|between:-90,90
+- `location.long`: required_with:location|numeric|between:-180,180
 
 **Response (201):**
 ```json
 {
   "status_code": 201,
   "message": "Registered Successfully",
+  "data": "john@example.com"
+}
+```
+
+### POST `/auth/login`
+Login user.
+
+**Request body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "secret123"
+}
+```
+
+**Validation:**
+- `email`: required|email
+- `password`: required|string|min:6
+
+**Response (202):**
+```json
+{
+  "status_code": 202,
+  "message": "Logged In Successfully",
   "data": {
-    "user": {
-      "id": "...",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "phone": "9841000000"
-    },
     "access_token": "eyJ...",
-    "token_type": "Bearer",
-    "expires_in": 86400
+    "refresh_token": "random64chars...",
+    "expires_in": 1800
   }
 }
 ```
 
----
-
-### POST /api/auth/login
-
-Log in with email and password.
-
-**Body:**
-```json
-{
-  "email": "john@example.com",
-  "password": "securepassword"
-}
-```
+### GET `/auth/logout`
+Logout current access token. Optional query/body input: `refresh_token`.
 
 **Response (200):**
 ```json
 {
   "status_code": 200,
-  "message": "Logged In Successfully",
-  "data": {
-    "user": {
-      "id": "...",
-      "name": "John Doe",
-      "email": "john@example.com"
-    },
-    "access_token": "eyJ...",
-    "token_type": "Bearer",
-    "expires_in": 86400
-  }
+  "message": "Logged Out Successfully",
+  "data": null
 }
 ```
 
----
+### POST `/auth/verify-otp`
+Verify email OTP.
 
-### POST /api/auth/verify-otp
-
-Verify the 6-digit email OTP sent after registration.
-
-**Body:**
+**Request body:**
 ```json
 {
   "email": "john@example.com",
@@ -135,31 +168,57 @@ Verify the 6-digit email OTP sent after registration.
 }
 ```
 
----
+**Validation:**
+- `email`: required|email|exists:users,email
+- `otp`: required|digits:6
 
-### POST /api/auth/resend-otp
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "OTP Verified Successfully",
+  "data": {
+    "access_token": "eyJ...",
+    "refresh_token": "random64chars...",
+    "expires_in": 1800
+  }
+}
+```
 
-Resend the OTP to the user's email.
+### POST `/auth/resend-otp`
+Resend OTP.
 
-**Body:**
+**Request body:**
 ```json
 {
   "email": "john@example.com"
 }
 ```
 
----
+**Validation:**
+- `email`: required|email|exists:users,email
 
-### POST /api/auth/refresh-token
-
-Exchange a refresh token for a new access token.
-
-**Body:**
+**Response (200):**
 ```json
 {
-  "refresh_token": "def50200..."
+  "status_code": 200,
+  "message": "OTP Resend Successfully",
+  "data": null
 }
 ```
+
+### POST `/auth/refresh-token`
+Get new access token.
+
+**Request body:**
+```json
+{
+  "refresh_token": "random64chars..."
+}
+```
+
+**Validation:**
+- `refresh_token`: required|string
 
 **Response (200):**
 ```json
@@ -168,69 +227,124 @@ Exchange a refresh token for a new access token.
   "message": "Token Refreshed Successfully",
   "data": {
     "access_token": "eyJ...",
-    "token_type": "Bearer",
-    "expires_in": 86400,
-    "refresh_token": "def50200..."
+    "refresh_token": "newRandom64chars...",
+    "expires_in": 1800
   }
 }
 ```
 
----
+### POST `/auth/forgot-password`
+Send reset OTP.
 
-### GET /api/auth/logout
-
-Invalidate the current token and log out.
-
-**Headers:** `Authorization: Bearer {access_token}`
-
----
-
-### POST /api/auth/forgot-password
-
-Start password reset flow.
-
-**Body:**
+**Request body:**
 ```json
 {
   "email": "john@example.com"
 }
 ```
 
----
+**Validation:**
+- `email`: required|email|exists:users,email
 
-### POST /api/auth/reset-password
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Password reset OTP sent successfully",
+  "data": null
+}
+```
 
-Complete password reset with OTP.
+### POST `/auth/reset-password`
+Reset password using OTP.
 
-**Body:**
+**Request body:**
 ```json
 {
   "email": "john@example.com",
   "otp": "123456",
-  "password": "newpassword"
+  "password": "newSecret123",
+  "password_confirmation": "newSecret123"
+}
+```
+
+**Validation:**
+- `email`: required|email|exists:users,email
+- `otp`: required|digits:6
+- `password`: required|confirmed|Password::defaults()
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Password reset successfully",
+  "data": {
+    "access_token": "eyJ...",
+    "refresh_token": "random64chars...",
+    "expires_in": 1800
+  }
 }
 ```
 
 ---
 
-## 3. Donor Endpoints
+## 4. Donor Endpoints
 
-**Auth:** `Bearer {token}` + role: `donor`
+All require `auth:api` + role `donor`.
 
-### POST /api/donor/listings
+### GET `/donor/listings`
+Get donor listings (supports repository-driven filtering/pagination params).
 
-Create a new food listing with tags (replaces food_type).
+**Common query params used in project:**
+- `status` (optional)
+- `page`, `per_page`, `sort_by`, `sort_order` (optional)
 
-**Headers:** `Authorization: Bearer {access_token}`
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Listings retrieved",
+  "data": [
+    {
+      "id": "uuid",
+      "title": "Leftover Dal Bhat",
+      "description": "Freshly cooked",
+      "quantity": "15 portions",
+      "tags": [
+        { "slug": "for_humans", "name": "For Humans", "category": "audience" },
+        { "slug": "cooked", "name": "Cooked", "category": "state" }
+      ],
+      "photos": [],
+      "expires_at": "2026-04-06T20:00:00.000000Z",
+      "pickup_before": "2026-04-06T22:00:00.000000Z",
+      "pickup_instructions": null,
+      "status": "active",
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "location": { "lat": 27.7172, "lng": 85.324 },
+      "address": "Thamel, Kathmandu",
+      "distance_km": null,
+      "donor": { "id": "donor-uuid", "name": "Donor Name", "is_verified": false },
+      "confirmed_at": null,
+      "created_at": "2026-04-05T06:33:42.000000Z"
+    }
+  ]
+}
+```
 
-**Body:**
+If paginated by repository, response may include `meta` and `links`.
+
+### POST `/donor/listings`
+Create listing.
+
+**Request body:**
 ```json
 {
   "title": "Leftover Dal Bhat",
   "description": "Freshly cooked, enough for 15 people",
   "quantity": "15 portions",
   "tags": ["for_humans", "cooked"],
-  "photos": ["https://example.com/photo1.jpg"],
+  "photos": ["https://cdn.example.com/l1.jpg"],
   "expires_at": "2026-04-06T20:00:00Z",
   "pickup_before": "2026-04-06T22:00:00Z",
   "pickup_instructions": "Call before coming",
@@ -240,120 +354,87 @@ Create a new food listing with tags (replaces food_type).
 }
 ```
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `title` | string, max:255 | Yes | e.g., "Leftover Dal Bhat" |
-| `quantity` | string, max:100 | Yes | e.g., "15 portions", "5 kg" |
-| `tags` | array of strings | Yes | **Min 1 tag**, valid: `for_humans`, `for_animals`, `for_both`, `cooked`, `raw_ingredients`, `packaged` |
-| `expires_at` | datetime, after:now | Yes | When food expires (ISO 8601) |
-| `pickup_before` | datetime, after:expires_at | Yes | Latest pickup time (ISO 8601) |
-| `latitude` | decimal, -90 to 90 | Yes | e.g., 27.7172 |
-| `longitude` | decimal, -180 to 180 | Yes | e.g., 85.3240 |
-| `address` | string, max:500 | Yes | e.g., "Thamel, Kathmandu" |
-| `description` | text | No | Additional details |
-| `photos` | array of string | No | Image URLs |
-| `pickup_instructions` | text | No | e.g., "Call before coming" |
+**Validation:**
+- `title`: required|string|max:255
+- `description`: nullable|string
+- `quantity`: required|string|max:100
+- `tags`: required|array|min:1
+- `tags.*`: required|in:for_humans,for_animals,for_both,cooked,raw_ingredients,packaged
+- `photos`: nullable|array
+- `photos.*`: string
+- `expires_at`: required|date|after:now
+- `pickup_before`: required|date|after:expires_at
+- `pickup_instructions`: nullable|string
+- `latitude`: required|numeric|between:-90,90
+- `longitude`: required|numeric|between:-180,180
+- `address`: required|string|max:500
 
-**Response (201):**
-```json
-{
-  "status_code": 201,
-  "message": "Food listing created successfully",
-  "data": {
-    "id": "a17812b9-0969-46a4-bc4e-1f6b81c643e5",
-    "title": "Leftover Dal Bhat",
-    "description": "Freshly cooked, enough for 15 people",
-    "quantity": "15 portions",
-    "tags": [
-      {
-        "slug": "for_humans",
-        "name": "For Humans",
-        "category": "audience"
-      },
-      {
-        "slug": "cooked",
-        "name": "Cooked",
-        "category": "state"
-      }
-    ],
-    "photos": ["https://example.com/photo1.jpg"],
-    "expires_at": "2026-04-06T20:00:00.000000Z",
-    "pickup_before": "2026-04-06T22:00:00.000000Z",
-    "pickup_instructions": "Call before coming",
-    "status": "active",
-    "latitude": 27.7172,
-    "longitude": 85.324,
-    "location": {
-      "lat": 27.7172,
-      "lng": 85.324
-    },
-    "address": "Thamel, Kathmandu",
-    "distance_km": null,
-    "donor": {
-      "id": "a1780397-425a-4e2e-83f0-dc18b724cf72",
-      "name": "Samaya Mahate",
-      "is_verified": false
-    },
-    "confirmed_at": null,
-    "created_at": "2026-04-05T06:33:42.000000Z"
-  }
-}
-```
+**Response (201):** Listing payload follows same shape as in `GET /donor/listings` item.
 
----
-
-### GET /api/donor/listings
-
-View this donor's listings with optional filters.
-
-**Query Params:**
-| Param | Default | Description |
-|---|---|---|
-| `status` | all | Filter: `active`, `claimed`, `completed`, `expired`, `cancelled` |
-| `sort_by` | `created_at` | Sort field |
-| `sort_order` | `desc` | `asc` or `desc` |
-| `per_page` | 25 | Items per page |
-| `page` | 1 | Page number |
-| `no_paginate` | — | Include to return all results |
+### GET `/donor/listings/{id}`
+Get single listing by ID.
 
 **Response (200):**
 ```json
 {
   "status_code": 200,
-  "message": "Listings retrieved",
-  "data": [
-    { "id": "abc", "title": "...", "status": "active", ... }
-  ]
+  "message": "Listing retrieved",
+  "data": {
+    "id": "uuid",
+    "title": "Leftover Dal Bhat"
+  }
+}
+```
+Actual `data` includes full listing shape shown above.
+
+### PUT `/donor/listings/{id}`
+Update listing.
+
+**Request body:** any subset of create fields.
+
+**Validation (all optional):**
+- `title`: sometimes|string|max:255
+- `description`: nullable|string
+- `quantity`: sometimes|string|max:100
+- `tags`: sometimes|array|min:1
+- `tags.*`: required|in:for_humans,for_animals,for_both,cooked,raw_ingredients,packaged
+- `photos`: nullable|array
+- `photos.*`: string
+- `expires_at`: sometimes|date|after:now
+- `pickup_before`: sometimes|date|after:expires_at
+- `pickup_instructions`: nullable|string
+- `latitude`: sometimes|numeric|between:-90,90
+- `longitude`: sometimes|numeric|between:-180,180
+- `address`: sometimes|string|max:500
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Food listing updated successfully",
+  "data": {
+    "id": "uuid"
+  }
+}
+```
+Actual `data` includes full listing shape.
+
+### DELETE `/donor/listings/{id}`
+Cancel listing.
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Listing cancelled successfully",
+  "data": null
 }
 ```
 
----
+### GET `/donor/listings/{listingId}/claims`
+Get all claims for listing.
 
-### GET /api/donor/listings/{id}
-
-View a single listing.
-
----
-
-### PUT /api/donor/listings/{id}
-
-Update a listing. Only allowed if listing `status` is `active`.
-
-**Body:** Any subset of create listing fields (all optional).
-
----
-
-### DELETE /api/donor/listings/{id}
-
-Cancel a listing (sets status to `cancelled`).
-
----
-
-### GET /api/donor/listings/{listingId}/claims
-
-View all claims on a listing.
-
-**Response:**
+**Response (200):**
 ```json
 {
   "status_code": 200,
@@ -362,74 +443,100 @@ View all claims on a listing.
     {
       "id": "claim-uuid",
       "food_listing_id": "listing-uuid",
-      "note": "Picking up on behalf of 20 residents",
+      "note": "Picking up for shelter",
       "status": "pending",
       "recipient": {
-        "id": "...",
+        "id": "recipient-uuid",
         "name": "Asha Shelter",
         "is_verified": true
       },
-      "created_at": "2026-04-02T16:00:00Z"
+      "created_at": "2026-04-02T16:00:00.000000Z"
     }
   ]
 }
 ```
 
----
-
-### POST /api/donor/listings/{listingId}/claims/{claimId}/confirm
-
-Confirm a recipient's claim on a listing. This sets the listing status to `claimed`.
+### POST `/donor/listings/{listingId}/claims/{claimId}/confirm`
+Confirm one claim.
 
 **Response (200):**
 ```json
 {
   "status_code": 200,
   "message": "Claim confirmed successfully",
-  "data": { ... }
+  "data": {
+    "id": "listing-uuid",
+    "status": "claimed",
+    "claimed_by": "recipient-uuid"
+  }
 }
 ```
+Actual `data` includes full listing shape.
 
----
+### POST `/donor/listings/{listingId}/claims/{claimId}/reject`
+Reject claim.
 
-### POST /api/donor/listings/{listingId}/claims/{claimId}/reject
-
-Reject a recipient's claim.
-
----
-
-## 4. Recipient Endpoints
-
-**Auth:** `Bearer {token}` + role: `recipient`
-
-### GET /api/recipient/listings
-
-Browse all active listings by recipients.
-
-**Query Params:** Same pagination/sort fields as donor listings.
-
----
-
-### GET /api/recipient/listings/{id}
-
-View a single listing detail.
-
----
-
-### POST /api/recipient/listings/{listingId}/claim
-
-Claim a food listing. Only available when listing `status` is `active`.
-
-**Body:**
+**Response (200):**
 ```json
 {
-  "note": "We are picking up on behalf of Asha Shelter"
+  "status_code": 200,
+  "message": "Claim rejected successfully",
+  "data": null
 }
 ```
 
-| Field | Type | Required |
-|---|---|---|
-| `note` | text, max:500 | No |
+---
+
+## 5. Recipient Endpoints
+
+All require `auth:api` + role `recipient`.
+
+### GET `/recipient/listings`
+Get active listings for recipients.
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Listings retrieved",
+  "data": [
+    {
+      "id": "listing-uuid",
+      "title": "Dal Bhat"
+    }
+  ]
+}
+```
+Actual item includes full listing shape.
+
+### GET `/recipient/listings/{id}`
+Get listing detail.
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Listing retrieved",
+  "data": {
+    "id": "listing-uuid",
+    "title": "Dal Bhat"
+  }
+}
+```
+Actual `data` includes full listing shape.
+
+### POST `/recipient/listings/{listingId}/claim`
+Claim listing.
+
+**Request body:**
+```json
+{
+  "note": "We are picking up at 7 PM"
+}
+```
+
+**Validation:**
+- `note`: nullable|string|max:500
 
 **Response (201):**
 ```json
@@ -439,163 +546,67 @@ Claim a food listing. Only available when listing `status` is `active`.
   "data": {
     "id": "claim-uuid",
     "food_listing_id": "listing-uuid",
-    "note": "We are picking up on behalf of Asha Shelter",
-    "listing": {
-      "id": "listing-uuid",
-      "title": "Dal Bhat leftovers"
-    },
+    "note": "We are picking up at 7 PM",
+    "listing": { "id": "listing-uuid", "title": "Dal Bhat" },
     "claimed_by": null,
-    "recipient": {
-      "id": "...",
-      "name": "Asha Shelter",
-      "is_verified": true
-    },
     "status": "pending",
-    "created_at": "2026-04-02T16:00:00Z"
+    "created_at": "2026-04-02T16:00:00.000000Z"
   }
 }
 ```
 
----
+### DELETE `/recipient/listings/{listingId}/claim`
+Cancel own claim.
 
-### DELETE /api/recipient/listings/{listingId}/claim
-
-Cancel the authenticated user's claim for a listing. Only allowed when claim status is `pending`.
-
----
-
-### GET /api/recipient/claims
-
-View all claims by the authenticated recipient.
-
-**Query Params:**
-| Param | Default | Description |
-|---|---|---|
-| `status` | all | Filter: `pending`, `confirmed`, `rejected` |
-
----
-
-### POST /api/recipient/requests
-
-Create a new food request.
-
-**Headers:** `Authorization: Bearer {access_token}`
-
-**Body:**
+**Response (200):**
 ```json
 {
-  "title": "Need cooked food for shelter",
-  "description": "Feeding 25 people, prefer cooked meals",
-  "quantity_needed": "10 kg",
-  "tags": ["for_humans", "cooked"],
-  "needed_by": "2026-04-06T18:00:00Z",
-  "latitude": 27.7180,
-  "longitude": 85.3250,
-  "address": "Lazimpat, Kathmandu"
+  "status_code": 200,
+  "message": "Claim cancelled successfully",
+  "data": null
 }
 ```
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `title` | string, max:255 | Yes | e.g., "Need food for 20 people" |
-| `quantity_needed` | string, max:100 | Yes | e.g., "10 kg", "20 portions" |
-| `tags` | array of strings | Yes | **Min 1 tag**, see [Available Tags Reference](#8-available-tags-reference) |
-| `needed_by` | datetime, after:now | Yes | When food is needed (ISO 8601) |
-| `latitude` | decimal, -90 to 90 | Yes | e.g., 27.7172 |
-| `longitude` | decimal, -180 to 180 | Yes | e.g., 85.3240 |
-| `address` | string, max:500 | Yes | e.g., "Lazimpat, Kathmandu" |
-| `description` | text | No | Additional details |
+### GET `/recipient/claims`
+Get my claims (supports repository filtering).
 
-**Response (201):**
+**Query params:**
+- `status` (optional, used through filter pipeline)
+
+**Response (200):**
 ```json
 {
-  "status_code": 201,
-  "message": "Food request created successfully",
-  "data": {
-    "id": "req-uuid-123",
-    "title": "Need cooked food for shelter",
-    "description": "Feeding 25 people, prefer cooked meals",
-    "quantity_needed": "10 kg",
-    "tags": [
-      {
-        "slug": "for_humans",
-        "name": "For Humans",
-        "category": "audience"
-      },
-      {
-        "slug": "cooked",
-        "name": "Cooked",
-        "category": "state"
-      }
-    ],
-    "needed_by": "2026-04-06T18:00:00Z",
-    "status": "open",
-    "latitude": 27.7180,
-    "longitude": 85.3250,
-    "location": {
-      "lat": 27.7180,
-      "lng": 85.3250
-    },
-    "address": "Lazimpat, Kathmandu",
-    "distance_km": null,
-    "recipient": {
-      "id": "rec-uuid-456",
-      "name": "Red Cross Nepal",
-      "is_verified": true
-    },
-    "created_at": "2026-04-05T14:30:00Z"
-  }
+  "status_code": 200,
+  "message": "Claims retrieved",
+  "data": [
+    {
+      "id": "claim-uuid",
+      "food_listing_id": "listing-uuid",
+      "note": "Need urgently",
+      "listing": { "id": "listing-uuid", "title": "Dal Bhat" },
+      "claimed_by": null,
+      "status": "pending",
+      "created_at": "2026-04-02T16:00:00.000000Z"
+    }
+  ]
 }
 ```
 
 ---
 
-### GET /api/recipient/requests
+## 6. Shared Authenticated Endpoints
 
-View all food requests created by the authenticated recipient.
+Require `auth:api`.
 
-**Query Params:** Same pagination/sort fields as donor listings.
+### GET `/listings/nearby`
+Fetch nearby listings.
 
----
-
-### GET /api/recipient/requests/{id}
-
-View a single food request detail.
-
----
-
-### PUT /api/recipient/requests/{id}
-
-Update a food request. Only allowed if request `status` is `open`.
-
-**Body:** Any subset of create request fields (all optional, at least one required).
-
----
-
-### DELETE /api/recipient/requests/{id}
-
-Cancel a food request. Only allowed if `status` is `open`.
-
----
-
-## 5. Shared Endpoints
-
-**Auth:** `Bearer {token}` (any authenticated user)
-
-### GET /api/listings/nearby
-
-Browse nearby food listings using lat/lng coordinates.
-
-**Query Params:**
-| Param | Required | Default | Validation |
-|---|---|---|---|
-| `lat` | Yes | — | -90 to 90 |
-| `lng` | Yes | — | -180 to 180 |
-| `radius` | No | 5 | 1–50 km |
-| `food_type` | No | — | `human`, `animal`, `both` |
-| `status` | No | `active` | Any valid status |
-
-**Example:** `GET /api/listings/nearby?lat=27.7172&lng=85.3240&radius=5&food_type=human`
+**Query params:**
+- `lat` (required, numeric, -90..90)
+- `lng` (required, numeric, -180..180)
+- `radius` (optional, numeric, 1..50, default 5)
+- `food_type` (optional, one of `human`, `animal`, `both`)
+- `status` (optional, one of `active`, `claimed`, `completed`, `expired`, `cancelled`)
 
 **Response (200):**
 ```json
@@ -604,53 +615,24 @@ Browse nearby food listings using lat/lng coordinates.
   "message": "Nearby listings retrieved successfully",
   "data": [
     {
-      "id": "a17812b9-0969-46a4-bc4e-1f6b81c643e5",
-      "title": "Dal Bhat for 10",
-      "description": "Freshly cooked dal bhat",
-      "quantity": "10 portions",
-      "tags": [
-        {
-          "slug": "for_humans",
-          "name": "For Humans",
-          "category": "audience"
-        },
-        {
-          "slug": "cooked",
-          "name": "Cooked",
-          "category": "state"
-        }
-      ],
-      "photos": [],
-      "expires_at": "2026-04-06T20:00:00Z",
-      "pickup_before": "2026-04-06T22:00:00Z",
-      "pickup_instructions": "Call before coming",
-      "status": "active",
-      "latitude": 27.7182,
-      "longitude": 85.3250,
-      "location": {
-        "lat": 27.7182,
-        "lng": 85.3250
-      },
-      "address": "Thamel, Kathmandu",
-      "distance_km": 0.18,
-      "donor": {
-        "id": "xyz-123",
-        "name": "Momo House",
-        "is_verified": true
-      },
-      "created_at": "2026-04-05T17:00:00Z"
+      "id": "listing-uuid",
+      "title": "Dal Bhat",
+      "distance_km": 0.18
     }
   ]
 }
 ```
+Actual items include full listing shape with `distance_km`.
 
----
+### GET `/requests/nearby`
+Fetch nearby requests.
 
-### GET /api/requests/nearby
-
-Browse nearby food requests.
-
-**Query Params:** Same as `/api/listings/nearby`. `status` default: `open`.
+**Query params:**
+- `lat` (required, numeric, -90..90)
+- `lng` (required, numeric, -180..180)
+- `radius` (optional, numeric, 1..50, default 5)
+- `food_type` (optional, one of `human`, `animal`, `both`)
+- `status` (optional, one of `open`, `accepted`, `fulfilled`, `expired`, `cancelled`)
 
 **Response (200):**
 ```json
@@ -659,50 +641,34 @@ Browse nearby food requests.
   "message": "Nearby requests retrieved successfully",
   "data": [
     {
-      "id": "req-uuid-123",
-      "title": "Need food for shelter",
-      "description": "Feeding 25 people",
+      "id": "request-uuid",
+      "recipient_id": "recipient-uuid",
+      "title": "Need food",
+      "description": "For shelter",
       "quantity_needed": "10 kg",
-      "tags": [
-        {
-          "slug": "for_humans",
-          "name": "For Humans",
-          "category": "audience"
-        },
-        {
-          "slug": "cooked",
-          "name": "Cooked",
-          "category": "state"
-        }
-      ],
-      "needed_by": "2026-04-06T18:00:00Z",
+      "food_type": "human",
+      "needed_by": "2026-04-06T18:00:00.000000Z",
       "status": "open",
-      "latitude": 27.7180,
-      "longitude": 85.3250,
-      "location": {
-        "lat": 27.7180,
-        "lng": 85.3250
-      },
-      "address": "Lazimpat, Kathmandu",
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "location": { "lat": 27.7172, "lng": 85.324 },
+      "address": "Kathmandu",
       "distance_km": 0.15,
       "recipient": {
-        "id": "rec-uuid-456",
-        "name": "Red Cross Nepal",
+        "id": "recipient-uuid",
+        "name": "Asha Shelter",
         "is_verified": true
       },
-      "created_at": "2026-04-05T14:00:00Z"
+      "created_at": "2026-04-05T14:00:00.000000Z"
     }
   ]
 }
 ```
 
----
+### PUT `/user/location`
+Update current user location.
 
-### PUT /api/user/location
-
-Update the authenticated user's current location.
-
-**Body:**
+**Request body:**
 ```json
 {
   "latitude": 27.7172,
@@ -710,20 +676,28 @@ Update the authenticated user's current location.
 }
 ```
 
+**Validation:**
+- `latitude`: required|numeric|between:-90,90
+- `longitude`: required|numeric|between:-180,180
+
 **Response (200):**
 ```json
 {
   "status_code": 200,
   "message": "Location updated successfully",
-  "data": null
+  "data": {
+    "latitude": 27.7172,
+    "longitude": 85.324,
+    "location": {
+      "lat": 27.7172,
+      "lng": 85.324
+    }
+  }
 }
 ```
 
----
-
-### GET /api/user/profile
-
-Get the authenticated user's profile.
+### GET `/user/profile`
+Get current profile.
 
 **Response (200):**
 ```json
@@ -731,208 +705,90 @@ Get the authenticated user's profile.
   "status_code": 200,
   "message": "Profile retrieved successfully",
   "data": {
-    "id": "...",
+    "id": "user-uuid",
     "name": "John Doe",
     "email": "john@example.com",
     "contact": "9841000000",
     "is_verified": false,
     "profile_photo": null,
-    "roles": ["donor"]
+    "latitude": 27.7172,
+    "longitude": 85.324,
+    "location": { "lat": 27.7172, "lng": 85.324 },
+    "roles": ["recipient"]
   }
 }
 ```
 
----
+### PUT `/user/profile`
+Update profile.
 
-### PUT /api/user/profile
-
-Update the authenticated user's profile.
-
-**Body:** (all fields optional)
+**Request body (all optional):**
 ```json
 {
-  "name": "John Updated Name",
+  "name": "John Updated",
   "contact": "9841122334",
-  "profile_photo": "https://example.com/photos/profile.jpg"
+  "profile_photo": "https://cdn.example.com/profile.jpg"
 }
 ```
 
----
+**Validation:**
+- `name`: sometimes|string|max:255
+- `contact`: sometimes|string|max:20
+- `profile_photo`: sometimes|string
 
-## 6. Error Responses
-
-| Status Code | Meaning | Examples |
-|---|---|---|
-| 400 | Bad Request | Claim on inactive listing, updating non-active listing |
-| 401 | Unauthorized | Missing or expired token |
-| 403 | Forbidden | Wrong role (e.g. donor accessing recipient routes) |
-| 404 | Not Found | Listing/claim/user doesn't exist |
-| 422 | Validation Error | Invalid payload format |
-| 500 | Server Error | Internal exception |
-
-**Error format:**
+**Response (200):**
 ```json
 {
-  "status_code": 404,
-  "message": "Listing not found",
-  "data": null
-}
-```
-
-**Validation errors (422):**
-```json
-{
-  "message": "The title field is required.",
-  "errors": {
-    "title": ["The title field is required."]
+  "status_code": 200,
+  "message": "Profile updated successfully",
+  "data": {
+    "id": "user-uuid",
+    "name": "John Updated",
+    "email": "john@example.com",
+    "contact": "9841122334",
+    "is_verified": false,
+    "profile_photo": "https://cdn.example.com/profile.jpg",
+    "latitude": 27.7172,
+    "longitude": 85.324,
+    "location": { "lat": 27.7172, "lng": 85.324 },
+    "roles": ["recipient"]
   }
 }
 ```
 
 ---
 
-## 7. Role Access Matrix
+## 7. Enums Used in Payload Validation
 
-| Endpoint | Donor | Recipient | Any Auth User |
-|---|---|---|---|
-| `POST /api/auth/register` | — | — | Public |
-| `POST /api/auth/login` | — | — | Public |
-| `POST /api/auth/verify-otp` | — | — | Public |
-| `POST /api/auth/refresh-token` | — | — | Any |
-| `GET /api/auth/logout` | — | — | Any Auth |
-| `POST /api/auth/forgot-password` | — | — | Public |
-| `POST /api/auth/reset-password` | — | — | Public |
-| `POST /api/donor/listings` | Yes | — | — |
-| `GET /api/donor/listings` | Yes | — | — |
-| `GET /api/donor/listings/{id}` | Yes | — | — |
-| `PUT /api/donor/listings/{id}` | Yes | — | — |
-| `DELETE /api/donor/listings/{id}` | Yes | — | — |
-| `GET /api/donor/listings/{listingId}/claims` | Yes | — | — |
-| `POST /api/donor/listings/{listingId}/claims/{claimId}/confirm` | Yes | — | — |
-| `POST /api/donor/listings/{listingId}/claims/{claimId}/reject` | Yes | — | — |
-| `GET /api/recipient/listings` | — | Yes | — |
-| `GET /api/recipient/listings/{id}` | — | Yes | — |
-| `POST /api/recipient/listings/{listingId}/claim` | — | Yes | — |
-| `DELETE /api/recipient/listings/{listingId}/claim` | — | Yes | — |
-| `GET /api/recipient/claims` | — | Yes | — |
-| `POST /api/recipient/requests` | — | Yes | — |
-| `GET /api/recipient/requests` | — | Yes | — |
-| `GET /api/recipient/requests/{id}` | — | Yes | — |
-| `PUT /api/recipient/requests/{id}` | — | Yes | — |
-| `DELETE /api/recipient/requests/{id}` | — | Yes | — |
-| `GET /api/listings/nearby` | — | — | Any Auth |
-| `GET /api/requests/nearby` | — | — | Any Auth |
-| `PUT /api/user/location` | — | — | Any Auth |
-| `GET /api/user/profile` | — | — | Any Auth |
-| `PUT /api/user/profile` | — | — | Any Auth |
+### `tags` allowed values
+- `for_humans`
+- `for_animals`
+- `for_both`
+- `cooked`
+- `raw_ingredients`
+- `packaged`
+
+### `role` allowed values
+- `donor`
+- `recipient`
 
 ---
 
-## 8. Available Tags Reference
+## 8. Common Error Cases
 
-Tags replace the old `food_type` field. Use these slugs when creating/updating listings or requests.
-
-### Tag Categories
-
-#### Audience (Choose at least one)
-| Slug | Name | Description |
-|---|---|---|
-| `for_humans` | For Humans | Food suitable for human consumption |
-| `for_animals` | For Animals | Food suitable for animals (pets, strays) |
-| `for_both` | For Both | Food suitable for both humans and animals |
-
-#### Food State (Choose at least one)
-| Slug | Name | Description |
-|---|---|---|
-| `cooked` | Cooked | Ready-to-eat, fully cooked food |
-| `raw_ingredients` | Raw Ingredients | Uncooked, raw food items |
-| `packaged` | Packaged | Sealed/commercially packaged items |
-
-### Example Tag Combinations
-```json
-// Cooked meal for humans
-"tags": ["for_humans", "cooked"]
-
-// Raw vegetables for animals
-"tags": ["for_animals", "raw_ingredients"]
-
-// Packaged snacks for both
-"tags": ["for_both", "packaged"]
-
-// Multiple tags (audience + state)
-"tags": ["for_humans", "cooked"]
-```
+Examples from current code:
+- `404` Listing not found / Claim not found / User not found
+- `403` Unauthorized (owner mismatch or role mismatch)
+- `400` Listing is not available / Claim is not pending / Email not verified
+- `401` Invalid or expired refresh token
+- `422` Validation errors
 
 ---
 
-## 9. iOS Quick Start
+## 9. Frontend Integration Notes
 
-### Setup
-
-Add to your networking layer:
-
-```swift
-let baseURL = URL(string: "https://api.feedlink.tech/api")!
-let authToken = "eyJ..." // Store in Keychain after login
-
-func request(_ url: String, method: HttpMethod, body: Encodable? = nil) async throws -> Response {
-    guard let endpoint = URL(string: url, relativeTo: baseURL) else {
-        throw FeedLinkError.invalidURL
-    }
-    
-    var request = URLRequest(url: endpoint)
-    request.httpMethod = method.rawValue
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-    
-    if let body = body {
-        request.httpBody = try JSONEncoder().encode(body)
-    }
-    
-    let (data, response) = try await URLSession.shared.data(for: request)
-    
-    guard let httpResponse = response as? HTTPURLResponse else {
-        throw FeedLinkError.invalidResponse
-    }
-    
-    if httpResponse.statusCode == 401 {
-        try await refreshAccessToken()
-        return try await request(url, method: method, body: body)
-    }
-    
-    if !(200...299).contains(httpResponse.statusCode) {
-        let error = try JSONDecoder().decode(APIError.self, from: data)
-        throw FeedLinkError.api(status: httpResponse.statusCode, message: error.message)
-    }
-    
-    return try JSONDecoder().decode(Response.self, from: data)
-}
-```
-
-### Key Endpoints for iOS
-
-```swift
-// Nearby listings (map view)
-GET /api/listings/nearby?lat={userLat}&lng={userLng}&radius=5
-
-// User location (update from GPS)
-PUT /api/user/location  { "latitude": ..., "longitude": ... }
-
-// Create listing (camera → upload photo URLs)
-POST /api/donor/listings {
-  "title": "Leftover Dal Bhat",
-  "quantity": "15 portions",
-  "tags": ["for_humans", "cooked"],
-  "latitude": 27.7172,
-  "longitude": 85.3240,
-  "address": "Thamel, Kathmandu",
-  "expires_at": "2026-04-06T20:00:00Z",
-  "pickup_before": "2026-04-06T22:00:00Z"
-}
-
-// Claim listing
-POST /api/recipient/listings/{id}/claim  { "note": "..." }
-
-// Refresh token
-POST /api/auth/refresh-token  { "refresh_token": "..." }
-```
+- Use `GET /auth/logout` (not POST).
+- `register` currently returns email string in `data`, not token payload.
+- `login` returns `202 Accepted` status.
+- `reset-password` requires `password_confirmation`.
+- `recipient/requests` CRUD routes are not currently registered.
