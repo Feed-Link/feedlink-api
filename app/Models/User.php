@@ -2,30 +2,30 @@
 
 namespace App\Models;
 
+use App\Modules\FoodSafety\Entities\DonorWarning;
+use App\Modules\FoodSafety\Entities\IllnessClaim;
+use App\Modules\FoodSafety\Entities\UserAcceptance;
+use App\Modules\Notifications\Entities\Notification;
 use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\OneTimePasswords\Models\Concerns\HasOneTimePasswords;
 use Spatie\Permission\Traits\HasRoles;
-use App\Modules\FoodSafety\Entities\UserAcceptance;
-use App\Modules\FoodSafety\Entities\IllnessClaim;
-use App\Modules\FoodSafety\Entities\DonorWarning;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory;
-    use Notifiable;
-    use HasUuids;
     use HasApiTokens;
-    use HasRoles;
+    use HasFactory;
     use HasOneTimePasswords;
+    use HasRoles;
+    use HasUuids;
+    use Notifiable;
 
     protected $fillable = [
         'name',
@@ -36,7 +36,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'longitude',
         'location',
         'is_verified',
-        'profile_photo'
+        'profile_photo',
+        'fcm_token',
     ];
 
     protected $hidden = [
@@ -44,7 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
         'email_verified_at',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
     protected function casts(): array
@@ -61,7 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected static function booted()
     {
         static::saving(function ($user) {
-            if ($user->latitude && $user->longitude && !$user->location) {
+            if ($user->latitude && $user->longitude && ! $user->location) {
                 $user->location = Point::makeGeodetic($user->latitude, $user->longitude);
             }
         });
@@ -87,4 +88,8 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(DonorWarning::class, 'donor_id');
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class, 'user_id');
+    }
 }
