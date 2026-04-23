@@ -4,6 +4,7 @@ namespace App\Modules\FoodListings\Entities;
 
 use App\Models\User;
 use App\Modules\Core\Entities\BaseModel;
+use App\Modules\Core\Enums\ClaimStatusEnum;
 
 class ListingClaim extends BaseModel
 {
@@ -24,20 +25,7 @@ class ListingClaim extends BaseModel
 
     public const SEARCHABLE = ['note'];
 
-    public const STATUS = [
-        'active',
-        'cancelled',
-        'pending',
-        'approved',
-        'rejected',
-        'pending',
-        'accepted',
-        'claimed',
-        'completed',
-        'expired',
-        'cancelled',
-        'rejected',
-    ];
+    public const STATUS = ClaimStatusEnum::class;
 
     public function listing()
     {

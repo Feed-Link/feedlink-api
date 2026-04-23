@@ -16,8 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class FoodListing extends BaseModel
 {
     use Filterables;
-    use HasUuids;
     use HasFactory;
+    use HasUuids;
 
     protected $table = 'food_listings';
 
@@ -51,17 +51,6 @@ class FoodListing extends BaseModel
 
     public const SEARCHABLE = ['title', 'description', 'address', 'status', 'donor_id'];
 
-    public const STATUS = [
-        'active',
-        'cancelled',
-        'pending',
-        'approved',
-        'rejected',
-        'claimed',
-        'completed',
-        'expired',
-    ];
-
     protected static function newFactory()
     {
         return FoodListingFactory::new();
@@ -70,7 +59,7 @@ class FoodListing extends BaseModel
     protected function location(): Attribute
     {
         return Attribute::make(
-            set: fn(mixed $value) => is_array($value)
+            set: fn (mixed $value) => is_array($value)
                 && isset($value['lat'], $value['long'])
                 ? Point::make($value['long'], $value['lat'])
                 : $value
