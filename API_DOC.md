@@ -65,6 +65,10 @@ Validation failures (`422`) may return Laravel validation error format.
 | PUT | `/user/location` | Yes | Any |
 | GET | `/user/profile` | Yes | Any |
 | PUT | `/user/profile` | Yes | Any |
+| POST | `/user/device-token` | Yes | Any |
+| GET | `/notifications` | Yes | Any |
+| PUT | `/notifications/{id}/read` | Yes | Any |
+| PUT | `/notifications/read-all` | Yes | Any |
 | POST | `/upload/photo` | Yes | Any |
 
 ---
@@ -793,6 +797,71 @@ Update profile.
     "roles": ["recipient"]
   }
 }
+```
+
+---
+
+### POST `/user/device-token`
+Register or update the authenticated user's Firebase FCM device token. Call this on every app launch after login.
+
+**Request body:**
+```json
+{ "fcm_token": "firebase-device-token-string" }
+```
+
+**Validation:**
+- `fcm_token`: required|string|max:255
+
+**Response (200):**
+```json
+{ "status_code": 200, "message": "Device token registered", "data": null }
+```
+
+---
+
+### GET `/notifications`
+Paginated notification center. `unread_count` drives the iOS bell badge without a separate request.
+
+**Query params:**
+- `per_page` (optional, default 15)
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Notifications retrieved",
+  "data": {
+    "items": [
+      {
+        "id": "uuid",
+        "type": "claim_received",
+        "title": "New claim on your listing",
+        "body": "Asha Shelter wants to claim Dal Bhat",
+        "data": { "listing_id": "uuid", "claim_id": "uuid", "listing_title": "Dal Bhat" },
+        "read_at": null,
+        "created_at": "2026-04-23T10:00:00.000000Z"
+      }
+    ],
+    "unread_count": 3,
+    "meta": { "current_page": 1, "per_page": 15, "total": 5, "last_page": 1 }
+  }
+}
+```
+
+### PUT `/notifications/{id}/read`
+Mark a single notification as read. Silently no-ops if already read.
+
+**Response (200):**
+```json
+{ "status_code": 200, "message": "Notification marked as read", "data": null }
+```
+
+### PUT `/notifications/read-all`
+Mark all of the authenticated user's notifications as read.
+
+**Response (200):**
+```json
+{ "status_code": 200, "message": "All notifications marked as read", "data": null }
 ```
 
 ---
