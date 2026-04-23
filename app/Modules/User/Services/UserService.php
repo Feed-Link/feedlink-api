@@ -163,7 +163,7 @@ class UserService
                 throw new Exception('User not found', Response::HTTP_NOT_FOUND);
             }
 
-            SendOTPJob::dispatch($user);
+            SendOTPJob::dispatch($user, 'reset');
         } catch (Exception $e) {
             throw $e;
         }
