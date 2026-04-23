@@ -2,28 +2,27 @@
 
 namespace App\Modules\User\Services;
 
+use App\Models\RefreshToken;
+use App\Modules\FoodSafety\Entities\UserAcceptance;
 use App\Modules\User\Jobs\SendOTPJob;
 use App\Modules\User\Repositories\UserRepository;
-use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Str;
-use App\Models\RefreshToken;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserService
 {
     public function __construct(
         protected UserRepository $userRepository,
-    ) {
-    }
+    ) {}
 
     /**
      * ====================================
      *        Authentication Section
      * ====================================
      */
-
     public function store(array $details): string
     {
         try {
@@ -31,6 +30,13 @@ class UserService
 
             if (isset($user)) {
                 $user->assignRole($details['role']);
+                UserAcceptance::create([
+                    'user_id' => $user->id,
+                    'terms_version' => UserAcceptance::CURRENT_TERMS_VERSION,
+                    'terms_type' => $details['role'],
+                    'ip_address' => request()->ip(),
+                    'accepted_at' => now(),
+                ]);
                 SendOTPJob::dispatch($user);
             }
 
@@ -48,12 +54,12 @@ class UserService
 
             if (
                 is_null($user) ||
-                !Auth::guard('web')->attempt($details)
+                ! Auth::guard('web')->attempt($details)
             ) {
                 throw new Exception('Invalid credentials', Response::HTTP_NOT_FOUND);
             }
 
-            if (!$user->hasVerifiedEmail()) {
+            if (! $user->hasVerifiedEmail()) {
                 SendOTPJob::dispatch($user);
                 throw new Exception('Email not verified. OTP sent.', Response::HTTP_BAD_REQUEST);
             }
@@ -70,7 +76,7 @@ class UserService
             return [
                 'access_token' => $token,
                 'refresh_token' => $refreshToken,
-                'expires_in' => 1800
+                'expires_in' => 1800,
             ];
         } catch (Exception $e) {
             throw $e;
@@ -100,7 +106,6 @@ class UserService
      *             OTP Section
      * ====================================
      */
-
     public function verifyOTP(array $details): array
     {
         try {
@@ -127,7 +132,7 @@ class UserService
             return [
                 'access_token' => $token,
                 'refresh_token' => $refreshToken,
-                'expires_in' => 1800
+                'expires_in' => 1800,
             ];
         } catch (Exception $e) {
             throw $e;
@@ -139,7 +144,7 @@ class UserService
         try {
             $user = $this->userRepository->fetchBy('email', $details['email']);
 
-            if (!is_null($user->email_verified_at)) {
+            if (! is_null($user->email_verified_at)) {
                 throw new Exception('User is already verified');
             }
 
@@ -154,7 +159,7 @@ class UserService
         try {
             $user = $this->userRepository->fetchBy('email', $details['email']);
 
-            if (!$user) {
+            if (! $user) {
                 throw new Exception('User not found', Response::HTTP_NOT_FOUND);
             }
 
@@ -169,7 +174,7 @@ class UserService
         try {
             $user = $this->userRepository->fetchBy('email', $details['email']);
 
-            if (!$user) {
+            if (! $user) {
                 throw new Exception('User not found', Response::HTTP_NOT_FOUND);
             }
 
@@ -194,7 +199,7 @@ class UserService
             return [
                 'access_token' => $token,
                 'refresh_token' => $refreshToken,
-                'expires_in' => 1800
+                'expires_in' => 1800,
             ];
         } catch (Exception $e) {
             throw $e;
@@ -210,7 +215,7 @@ class UserService
                 ->where('expires_at', '>', Carbon::now())
                 ->first();
 
-            if (!$refreshToken || !$refreshToken->user) {
+            if (! $refreshToken || ! $refreshToken->user) {
                 throw new Exception('Invalid or expired refresh token', Response::HTTP_UNAUTHORIZED);
             }
 
@@ -231,7 +236,7 @@ class UserService
             return [
                 'access_token' => $accessToken,
                 'refresh_token' => $newRefreshTokenString,
-                'expires_in' => 1800
+                'expires_in' => 1800,
             ];
         } catch (Exception $e) {
             throw $e;

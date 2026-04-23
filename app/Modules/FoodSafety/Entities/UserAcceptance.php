@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserAcceptance extends BaseModel
 {
+    public const SEARCHABLE = ['terms_version', 'terms_type'];
+
+    public const CURRENT_TERMS_VERSION = '2026-04-05';
+
     protected $table = 'user_acceptances';
 
     protected $fillable = [

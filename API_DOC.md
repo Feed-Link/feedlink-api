@@ -94,7 +94,8 @@ Register user.
   "location": {
     "lat": 27.7172,
     "long": 85.3240
-  }
+  },
+  "terms_accepted": true
 }
 ```
 
@@ -107,6 +108,7 @@ Register user.
 - `location`: required|array
 - `location.lat`: required_with:location|numeric|between:-90,90
 - `location.long`: required_with:location|numeric|between:-180,180
+- `terms_accepted`: required|accepted
 
 **Response (201):**
 ```json

@@ -4,6 +4,7 @@ namespace App\Modules\User\Request;
 
 use App\Modules\Core\Enums\RolesEnum;
 use App\Modules\Core\Requests\BaseRequest;
+use Illuminate\Contracts\Validation\ValidationRule;
 
 class SignupRequest extends BaseRequest
 {
@@ -18,7 +19,7 @@ class SignupRequest extends BaseRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function store(): array
     {
@@ -27,10 +28,11 @@ class SignupRequest extends BaseRequest
             'email' => 'required|email|unique:users,email',
             'contact' => 'required|string|max:10',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:' . implode(',', RolesEnum::getAllValues()),
-            'location'      => ['required', 'array'],
-            'location.lat'  => ['required_with:location', 'numeric', 'between:-90,90'],
-            'location.long' => ['required_with:location', 'numeric', 'between:-180,180']
+            'role' => 'required|in:'.implode(',', RolesEnum::getAllValues()),
+            'location' => ['required', 'array'],
+            'location.lat' => ['required_with:location', 'numeric', 'between:-90,90'],
+            'location.long' => ['required_with:location', 'numeric', 'between:-180,180'],
+            'terms_accepted' => ['required', 'accepted'],
         ];
     }
 
@@ -55,6 +57,9 @@ class SignupRequest extends BaseRequest
 
             'role.required' => 'The role field is required.',
             'role.in' => 'The selected role is invalid.',
+
+            'terms_accepted.required' => 'You must accept the terms and conditions.',
+            'terms_accepted.accepted' => 'You must accept the terms and conditions.',
         ];
     }
 
@@ -70,6 +75,8 @@ class SignupRequest extends BaseRequest
             $data['longitude'] = $data['location']['long'];
             unset($data['location']);
         }
+
+        unset($data['terms_accepted']);
 
         return $data;
     }

@@ -1,8 +1,7 @@
-# FeedLink – Laravel 11 API Development Plan
+# FeedLink – Laravel API
 > **Project:** FeedLink – Food Surplus Redistribution Platform (Nepal)
 > **Stack:** Laravel 11 · Laravel Passport · Spatie Permission · Clickbar Magellan Point (PostGIS)
-> **Client:** iOS (SwiftUI) 
-
+> **Client:** iOS (SwiftUI)
 
 ---
 
@@ -18,7 +17,7 @@ The following auth routes are **already implemented** and must not be re-created
 
 | Route | Description |
 |---|---|
-| `POST /api/register` | Register user |
+| `POST /api/register` | Register user (accepts `role`: donor/recipient) |
 | `POST /api/login` | Login with Passport |
 | `POST /api/verify` | Verify OTP |
 | `POST /api/resend-otp` | Resend OTP |
@@ -28,7 +27,9 @@ The following auth routes are **already implemented** and must not be re-created
 **Packages already installed:**
 - `laravel/passport` – API authentication
 - `spatie/laravel-permission` – Role & permission management
-- `clickbar/magellan-point` (or equivalent PostGIS package) – Geospatial queries
+- `clickbar/magellan-point` – Geospatial queries (PostGIS)
+
+**All donor, recipient, and shared routes are implemented.** See `API_DOC.md` for the full current route list.
 
 ---
 
@@ -41,572 +42,236 @@ During **registration**, the user selects one of two roles. No role switching is
 | Donor | `donor` | Lists surplus food, confirms/rejects claims |
 | Recipient | `recipient` | Claims food, creates food requests |
 
-> **Admin** role exists separately and is seeded manually (not part of this phase).
+> **Admin** role exists separately and is seeded manually.
 
-### 3.1 Registration Flow Change
-
-Update the existing `POST /api/register` to accept a `role` field:
-
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "secret",
-  "contact": "9841000000",
-  "role": "donor",   // or "recipient"
-  "location": {
-    "lat": 27.7172,
-    "long": 85.3240
-  }
-}
-```
-
-After successful registration, call `$user->assignRole($request->role)` using Spatie.
+Registration accepts a `role` field (`donor` or `recipient`) and assigns it via `$user->assignRole($request->role)`.
 
 ---
 
 ## 4. Database Schema Overview
 
-### 4.1 `users` (existing – extend as needed)
-Add columns:
-- `latitude` (decimal 10,8) – nullable, updated when user sets location
-- `longitude` (decimal 11,8) – nullable
-- `location` (geography/point) – PostGIS point via Magellan
-- `is_verified` (boolean) – for NGO/organisation badge
-- `profile_photo` (string) – nullable
+### 4.1 `users`
+Columns: `name`, `email`, `password`, `contact`, `latitude` (decimal 10,8), `longitude` (decimal 11,8), `location` (geography/point), `is_verified` (boolean), `profile_photo` (string nullable).
 
 ### 4.2 `food_listings`
 | Column | Type | Notes |
 |---|---|---|
-| `id` | bigint PK | |
 | `donor_id` | FK → users | |
-| `title` | string | e.g., "Leftover Dal Bhat" |
+| `title` | string | |
 | `description` | text | nullable |
-| `quantity` | string | e.g., "5 kg", "20 portions" |
+| `quantity` | string | |
 | `food_type` | enum | `human`, `animal`, `both` |
 | `photos` | json | array of image paths |
-| `expires_at` | timestamp | food expiry – triggers auto-expire |
+| `expires_at` | timestamp | triggers auto-expire |
 | `pickup_before` | timestamp | latest pickup window |
 | `pickup_instructions` | text | nullable |
 | `status` | enum | `active`, `claimed`, `completed`, `expired`, `cancelled` |
-| `latitude` | decimal(10,8) | |
-| `longitude` | decimal(11,8) | |
+| `latitude` / `longitude` | decimal | raw coords |
 | `location` | geography(Point) | PostGIS via Magellan |
-| `address` | string | human-readable address |
-| `claimed_by` | FK → users | nullable, recipient who claimed |
-| `confirmed_at` | timestamp | nullable, when donor confirmed pickup |
-| `created_at` / `updated_at` | timestamps | |
+| `address` | string | |
+| `claimed_by` | FK → users | nullable |
+| `confirmed_at` | timestamp | nullable |
 
 ### 4.3 `food_requests`
 | Column | Type | Notes |
 |---|---|---|
-| `id` | bigint PK | |
 | `recipient_id` | FK → users | |
-| `title` | string | e.g., "Need cooked rice for 10 people" |
+| `title` | string | |
 | `description` | text | nullable |
 | `quantity_needed` | string | |
 | `food_type` | enum | `human`, `animal`, `both` |
 | `needed_by` | timestamp | deadline |
 | `status` | enum | `open`, `accepted`, `fulfilled`, `expired`, `cancelled` |
-| `latitude` | decimal(10,8) | |
-| `longitude` | decimal(11,8) | |
-| `location` | geography(Point) | PostGIS via Magellan |
+| `latitude` / `longitude` | decimal | |
+| `location` | geography(Point) | |
 | `address` | string | |
-| `accepted_by` | FK → users | nullable, donor who accepted |
+| `accepted_by` | FK → users | nullable |
 | `accepted_at` | timestamp | nullable |
-| `expires_at` | timestamp | auto-expire if not accepted |
-| `created_at` / `updated_at` | timestamps | |
+| `expires_at` | timestamp | |
 
-### 4.4 `listing_claims` (pivot / claim log)
+### 4.4 `listing_claims`
 | Column | Type | Notes |
 |---|---|---|
-| `id` | bigint PK | |
 | `food_listing_id` | FK | |
 | `recipient_id` | FK → users | |
 | `status` | enum | `pending`, `confirmed`, `rejected` |
-| `note` | text | nullable, claim message |
-| `created_at` / `updated_at` | timestamps | |
+| `note` | text | nullable |
 
-### 4.5 `request_acceptances` (pivot / acceptance log)
+### 4.5 `request_acceptances`
 | Column | Type | Notes |
 |---|---|---|
-| `id` | bigint PK | |
 | `food_request_id` | FK | |
 | `donor_id` | FK → users | |
 | `status` | enum | `pending`, `confirmed`, `rejected` |
 | `note` | text | nullable |
-| `created_at` / `updated_at` | timestamps | |
 
 ---
 
-## 5. API Routes to Build
+## 5. Geospatial Implementation (Magellan / PostGIS)
 
-All routes below are under the `api` prefix and protected by `auth:api` (Passport) unless stated. Role middleware uses Spatie's `role` middleware.
+Use `geography` (SRID 4326) for distance accuracy. Always store both raw `latitude`/`longitude` columns **and** the PostGIS `location` point.
 
-### 5.1 Donor Routes
-
-```
-Middleware: auth:api + role:donor
-```
-
-#### Food Listing CRUD
-
-| Method | URI | Description |
-|---|---|---|
-| `GET` | `/api/donor/listings` | All listings by this donor (with filters: status, page) |
-| `POST` | `/api/donor/listings` | Create a new food listing |
-| `GET` | `/api/donor/listings/{id}` | Get single listing detail |
-| `PUT` | `/api/donor/listings/{id}` | Update listing (only if `active`) |
-| `DELETE` | `/api/donor/listings/{id}` | Cancel/soft-delete listing |
-
-**POST/PUT payload:**
-```json
-{
-  "title": "Leftover Dal Bhat",
-  "description": "Freshly cooked, enough for 15 people",
-  "quantity": "15 portions",
-  "food_type": "human",
-  "photos": ["base64_or_multipart"],
-  "expires_at": "2026-04-01T20:00:00Z",
-  "pickup_before": "2026-04-01T22:00:00Z",
-  "pickup_instructions": "Call before coming",
-  "latitude": 27.7172,
-  "longitude": 85.3240,
-  "address": "Thamel, Kathmandu"
-}
-```
-
-#### Listing Status Views (filtered)
-
-| Method | URI | Description |
-|---|---|---|
-| `GET` | `/api/donor/listings?status=active` | Active listings |
-| `GET` | `/api/donor/listings?status=claimed` | Claimed (awaiting donor confirm) |
-| `GET` | `/api/donor/listings?status=completed` | Completed pickups |
-| `GET` | `/api/donor/listings?status=expired` | Expired listings |
-| `GET` | `/api/donor/listings?status=cancelled` | Cancelled listings |
-
-> Use a single `status` query param on the index route – no separate routes needed.
-
-#### Claim Management (Donor side)
-
-| Method | URI | Description |
-|---|---|---|
-| `GET` | `/api/donor/listings/{id}/claims` | View all claims on a listing |
-| `POST` | `/api/donor/listings/{id}/claims/{claim_id}/confirm` | Confirm a recipient's claim |
-| `POST` | `/api/donor/listings/{id}/claims/{claim_id}/reject` | Reject a recipient's claim |
-
-#### Food Request Acceptance (Donor side)
-
-| Method | URI | Description |
-|---|---|---|
-| `GET` | `/api/donor/requests` | Browse open food requests (location filter) |
-| `POST` | `/api/donor/requests/{id}/accept` | Accept a recipient's food request |
-| `POST` | `/api/donor/requests/{id}/cancel-acceptance` | Cancel accepted request (before confirmed) |
-
----
-
-### 5.2 Recipient Routes
-
-```
-Middleware: auth:api + role:recipient
-```
-
-#### Browse & Claim Food Listings
-
-| Method | URI | Description |
-|---|---|---|
-| `GET` | `/api/recipient/listings` | Browse available listings near recipient (location filter) |
-| `GET` | `/api/recipient/listings/{id}` | View listing detail |
-| `POST` | `/api/recipient/listings/{id}/claim` | Claim a food listing |
-| `DELETE` | `/api/recipient/listings/{id}/claim` | Cancel own claim |
-
-**Claim payload:**
-```json
-{
-  "note": "We are picking up on behalf of Asha Shelter"
-}
-```
-
-#### My Claims
-
-| Method | URI | Description |
-|---|---|---|
-| `GET` | `/api/recipient/claims` | All claims made by this recipient |
-| `GET` | `/api/recipient/claims?status=pending` | Pending claims |
-| `GET` | `/api/recipient/claims?status=confirmed` | Confirmed pickups |
-| `GET` | `/api/recipient/claims?status=rejected` | Rejected claims |
-
-#### Food Request CRUD (Recipient side)
-
-| Method | URI | Description |
-|---|---|---|
-| `GET` | `/api/recipient/requests` | All requests created by this recipient |
-| `POST` | `/api/recipient/requests` | Create a new food request |
-| `GET` | `/api/recipient/requests/{id}` | View request detail |
-| `PUT` | `/api/recipient/requests/{id}` | Update request (only if `open`) |
-| `DELETE` | `/api/recipient/requests/{id}` | Cancel request |
-
-**POST/PUT payload:**
-```json
-{
-  "title": "Need cooked food for street dogs",
-  "description": "Feeding ~20 dogs near Pashupatinath",
-  "quantity_needed": "5 kg",
-  "food_type": "animal",
-  "needed_by": "2026-04-02T18:00:00Z",
-  "latitude": 27.7105,
-  "longitude": 85.3487,
-  "address": "Pashupatinath Area, Kathmandu"
-}
-```
-
----
-
-### 5.3 Shared / Public Routes (auth required but no role restriction)
-
-| Method | URI | Description |
-|---|---|---|
-| `GET` | `/api/listings/nearby` | Browse nearby listings (lat/lng + radius filter) |
-| `GET` | `/api/requests/nearby` | Browse nearby food requests (lat/lng + radius filter) |
-| `PUT` | `/api/user/location` | Update own current location |
-| `GET` | `/api/user/profile` | Get own profile |
-| `PUT` | `/api/user/profile` | Update own profile |
-
-**Nearby query params:**
-```
-GET /api/listings/nearby?lat=27.7172&lng=85.3240&radius=5&food_type=human&page=1
-```
-- `lat` – required
-- `lng` – required
-- `radius` – km, default `5`, max `50`
-- `food_type` – optional: `human`, `animal`, `both`
-- `status` – default `active`
-
----
-
-## 6. Geospatial Implementation (Magellan / PostGIS)
-
-Use the **Clickbar Magellan** package for point storage and distance queries.
-
-### 6.1 Model Setup
-
+**Model setup:**
 ```php
-// FoodListing model
-use Clickbar\Magellan\Data\Geometries\Point;
 use Clickbar\Magellan\Eloquent\HasPostgisColumns;
 
-class FoodListing extends Model
-{
-    use HasPostgisColumns;
-
-    protected array $postgisColumns = [
-        'location' => [
-            'type' => 'geography',
-            'srid' => 4326,
-        ],
-    ];
-}
+protected array $postgisColumns = [
+    'location' => ['type' => 'geography', 'srid' => 4326],
+];
 ```
 
-### 6.2 Storing a Point
-
+**Storing a point:**
 ```php
-$listing->location = Point::makeGeodetic($request->latitude, $request->longitude);
-$listing->save();
+$data['location'] = Point::makeGeodetic($request->latitude, $request->longitude);
 ```
 
-### 6.3 Distance Query (Within X km)
-
+**Distance query:**
 ```php
-use Clickbar\Magellan\Expressions\Postgis;
-
-$listings = FoodListing::query()
-    ->whereStatus('active')
-    ->orderByDistance('location', $userPoint)
-    ->withinDistance('location', $userPoint, $radiusInMeters)
+$point = Point::makeGeodetic($lat, $lng);
+FoodListing::query()
+    ->withinDistance('location', $point, $radiusKm * 1000)
+    ->orderByDistance('location', $point)
     ->get();
 ```
 
-> Always store radius in **metres** in the query: `$km * 1000`.
-
-### 6.4 Response Format (map-ready)
-
-Every listing/request response should include:
-
-```json
-{
-  "id": 1,
-  "title": "Dal Bhat for 10",
-  "latitude": 27.7172,
-  "longitude": 85.3240,
-  "distance_km": 1.2,
-  "address": "Thamel, Kathmandu",
-  "status": "active",
-  ...
-}
-```
+**Every listing/request response must include `distance_km` when a location filter is applied.**
 
 ---
 
-## 7. Scheduled Commands (Auto-Expiry)
+## 6. Scheduled Commands (Auto-Expiry)
 
-### 7.1 Expire Food Listings
-
-```php
-// app/Console/Commands/ExpireFoodListings.php
-FoodListing::query()
-    ->whereIn('status', ['active', 'claimed'])
-    ->where('expires_at', '<=', now())
-    ->update(['status' => 'expired']);
-```
-
-### 7.2 Expire Food Requests
+Expire listings and requests run every 5 minutes via `routes/console.php` (Laravel 11 style):
 
 ```php
-FoodRequest::query()
-    ->whereIn('status', ['open', 'accepted'])
-    ->where('needed_by', '<=', now())
-    ->update(['status' => 'expired']);
-```
-
-### 7.3 Schedule Registration
-
-```php
-// routes/console.php or Kernel.php
 Schedule::command('feedlink:expire-listings')->everyFiveMinutes();
 Schedule::command('feedlink:expire-requests')->everyFiveMinutes();
 ```
 
 ---
 
-## 8. Development Phases
+## 7. Coding Rules & Conventions
 
-### Phase 1 – Role & Registration Update *(1–2 days)*
-- [ ] Add `role` field to register endpoint
-- [ ] Seed Spatie roles: `donor`, `recipient`, `admin`
-- [ ] Assign role on registration
-- [ ] Add role middleware to route groups
-- [ ] Extend `users` table with `latitude`, `longitude`, `location`, `is_verified`
+> **MANDATORY:** Before writing any PHP code (controllers, services, repositories, models, requests), you **MUST** load and follow the `modular-monolithic-pattern` skill. No exceptions.
 
-### Phase 2 – Food Listing Module *(3–4 days)*
-- [ ] Create `food_listings` migration
-- [ ] Create `FoodListing` model with Magellan PostGIS trait
-- [ ] Implement `DonorListingController` (CRUD + status filters)
-- [ ] Implement photo upload (Laravel Storage / S3)
-- [ ] Write `FoodListingResource` for API response
-- [ ] Implement `ExpireFoodListings` scheduled command
+### 7.1 Architecture
 
-### Phase 3 – Claim Module *(2–3 days)*
-- [ ] Create `listing_claims` migration
-- [ ] Implement `RecipientClaimController` (claim / cancel)
-- [ ] Implement `DonorClaimController` (confirm / reject)
-- [ ] Update listing status on claim confirmation
-- [ ] Prevent multiple active claims per listing
+All code follows **Controller → Service → Repository → Model**. Never skip a layer.
 
-### Phase 4 – Food Request Module *(3–4 days)*
-- [ ] Create `food_requests` migration
-- [ ] Create `FoodRequest` model with Magellan
-- [ ] Implement `RecipientRequestController` (CRUD)
-- [ ] Implement `DonorRequestController` (browse + accept)
-- [ ] Create `request_acceptances` migration + controller
-- [ ] Implement `ExpireFoodRequests` scheduled command
+```
+Controller   thin HTTP layer — validate, call service, return response
+Service      all business logic
+Repository   all data access, extends BaseRepository
+Model        Eloquent entity, extends BaseModel
+```
 
-### Phase 5 – Geospatial / Nearby Endpoints *(2 days)*
-- [ ] Implement `GET /api/listings/nearby` with lat/lng/radius
-- [ ] Implement `GET /api/requests/nearby` with lat/lng/radius
-- [ ] Implement `PUT /api/user/location`
-- [ ] Ensure `distance_km` appears in all map-bound responses
+### 7.2 Core Base Classes
 
-### Phase 6 – Testing & Polish *(2–3 days)*
-- [ ] Write Feature tests for each controller
-- [ ] Validate food safety tags (human/animal/both)
-- [ ] Rate limiting on claim/request creation
-- [ ] API documentation (Postman collection or Scribe)
+| Class | Path | Purpose |
+|---|---|---|
+| `BaseModel` | `app/Modules/Core/Entities/BaseModel.php` | Adds `HasUuids`, defines `SEARCHABLE` constant |
+| `BaseRepository` | `app/Modules/Core/Repositories/BaseRepository.php` | Provides `store()`, `fetch()`, `fetchBy()`, `fetchAll()`, `update()`, `delete()`, pessimistic locking |
+| `BaseRequest` | `app/Modules/Core/Requests/BaseRequest.php` | Routes validation to `store()` (POST) or `update()` (PUT/PATCH) based on HTTP method |
 
----
+**BaseRepository** uses the `Filterables` trait — `fetchAll($params)` supports `search`, `filter`, `sort_by`, `sort_order`, `per_page`, `no_paginate`, `infinite`, and comparison operators (`__gt_`, `__gte_`, `__lt_`, `__lte_`).
 
-## 9. Coding Conventions
+**BaseModel** requires a `SEARCHABLE` constant on every model:
+```php
+public const SEARCHABLE = ['title', 'description', 'address'];
+```
 
-> **MANDATORY FOR ALL CODING TASKS:** Before writing any PHP code in this project (new modules, controllers, services, repositories, models, requests), you **MUST** load and follow the `modular-monolithic-pattern` skill. No exceptions.
->
-> This skill is registered in `.ai/guidelines.md` as part of the Laravel Boost AI assistance framework.
-
-
-
-### 9.1 Request Classes
-
-All Form Request classes **must** extend `App\Modules\Core\Requests\BaseRequest`, never `Illuminate\Foundation\Http\FormRequest` directly.
-
-`BaseRequest` automatically routes validation to `store()` (POST) or `update()` (PUT/PATCH) based on the HTTP method. Override these methods instead of `rules()`:
+### 7.3 Repository Convention
 
 ```php
-use App\Modules\Core\Requests\BaseRequest;
-
-class CreateListingRequest extends BaseRequest
+class FoodListingRepository extends BaseRepository
 {
-    public function authorize(): bool
+    public function __construct(protected FoodListing $foodListing)
     {
-        return true;
+        $this->model = $foodListing;  // must assign before parent::__construct()
+        parent::__construct();
     }
+}
+```
+
+### 7.4 Request Classes
+
+All Form Request classes **must** extend `App\Modules\Core\Requests\BaseRequest`. Never extend `FormRequest` directly. Override `store()` and `update()` — **never** override `rules()`.
+
+```php
+class StoreFoodListingRequest extends BaseRequest
+{
+    public function authorize(): bool { return true; }
 
     public function store(): array
     {
-        return [
-            'title' => 'required|string|max:255',
-            // ...
-        ];
+        return ['title' => 'required|string|max:255'];
     }
 
     public function update(): array
     {
-        return [
-            'title' => 'sometimes|string|max:255',
-            // ...
-        ];
+        return ['title' => 'sometimes|string|max:255'];
     }
 }
 ```
 
-> Do not override `rules()` — override `store()` and `update()` instead.
+Always use `$request->validated()`, never `$request->all()`.
 
-### 9.2 API Documentation Sync Rule (Mandatory)
+### 7.5 Controllers (HasApiResponse)
 
-Whenever any API route is **added, removed, renamed, or updated** in `routes/api.php` (or route files loaded by the API), you **must** update `API_DOC.md` in the same task/PR.
+All controllers use `HasApiResponse` trait (`app/Modules/Core/Traits/HasApiResponse.php`). Every method must wrap logic in try/catch:
 
-Documentation updates must include:
-- Exact HTTP method and path
-- Auth requirements and role restrictions
-- Request payload fields with validation rules
-- Query parameters (if any)
-- Success response shape and status code
-- Known error response cases/messages relevant to the endpoint
-
-`API_DOC.md` should always reflect the current implementation in controllers/services/requests, not planned routes.
-
----
-
-## 10. Prompt Template for Claude
-
-Use the block below as your prompt when asking Claude to implement a specific phase or feature:
-
-```
-You are a senior Laravel 11 developer building the backend for FeedLink,
-a food redistribution platform in Nepal.
-
-## Tech Stack
-- Laravel 11
-- Laravel Passport (auth:api)
-- Spatie Laravel Permission (roles: donor, recipient, admin)
-- Clickbar Magellan (PostGIS geospatial)
-- MySQL / PostgreSQL
-- iOS client (SwiftUI)
-
-## Already Built
-- Auth routes: register, login, verify OTP, resend OTP, forgot password, reset password
-- Registration now accepts a `role` field (donor / recipient) and assigns it via Spatie
-
-## What I Need You To Build
-[DESCRIBE THE SPECIFIC PHASE OR FEATURE HERE]
-
-## Rules
-- All responses must be JSON (`return response()->json(...)`)
-- Use Laravel Form Requests for validation
-- Use API Resources for response formatting
-- Use Spatie role middleware on route groups
-- Store location as PostGIS point via Magellan; also store raw lat/lng columns
-- Return `distance_km` in all listing/request responses when location filter is applied
-- Scheduled commands go in `routes/console.php` (Laravel 11 style)
-- Follow RESTful conventions
-- Include migration, model, controller, request, resource, and route registration
-
-## Output Format
-Provide code file by file. Start with migration, then model, then controller,
-then form request, then API resource, then route registration.
-```
-
----
-
-## 11. Example Response Shapes
-
-### Food Listing (active)
-```json
+```php
+public function store(StoreFoodListingRequest $request): JsonResponse
 {
-  "id": 12,
-  "title": "Leftover Dal Bhat",
-  "description": "Freshly cooked, enough for 15 people",
-  "quantity": "15 portions",
-  "food_type": "human",
-  "photos": [
-    "https://feedlink.app/storage/listings/photo1.jpg"
-  ],
-  "expires_at": "2026-04-01T20:00:00Z",
-  "pickup_before": "2026-04-01T22:00:00Z",
-  "pickup_instructions": "Call before coming",
-  "status": "active",
-  "latitude": 27.7172,
-  "longitude": 85.3240,
-  "address": "Thamel, Kathmandu",
-  "distance_km": 1.2,
-  "donor": {
-    "id": 3,
-    "name": "Momo House Restaurant",
-    "is_verified": true
-  },
-  "claimed_by": null,
-  "created_at": "2026-04-01T15:00:00Z"
+    try {
+        $listing = $this->foodListingService->createListing($request->validated());
+        return $this->success('Food listing created', Response::HTTP_CREATED, new FoodListingResource($listing));
+    } catch (Exception $exception) {
+        return $this->handleException($exception);
+    }
 }
 ```
 
-### Claim (pending)
-```json
-{
-  "id": 5,
-  "food_listing_id": 12,
-  "recipient": {
-    "id": 7,
-    "name": "Asha Shelter",
-    "is_verified": true
-  },
-  "status": "pending",
-  "note": "Picking up on behalf of 20 residents",
-  "created_at": "2026-04-01T16:00:00Z"
-}
+- Use `$this->success($message, $statusCode, $data)` — never `response()->json()` directly.
+- Use `$this->handleException($exception)` in every catch block.
+- Always throw exceptions with an HTTP code: `throw new Exception('Not found', 404)`.
+- Always wrap model output in an API Resource.
+
+### 7.6 Enums
+
+All categorical fields (`status`, `food_type`, `role`) must use PHP enums from `app/Modules/Core/Enums/`. Use TitleCase for enum keys.
+
+```php
+// Existing enums:
+RolesEnum, FoodTypeEnum, ListingStatusEnum, RequestStatusEnum, FoodTagEnum, FoodTagCategoryEnum
 ```
 
-### Food Request
-```json
-{
-  "id": 4,
-  "title": "Need cooked food for street dogs",
-  "description": "Feeding ~20 dogs near Pashupatinath",
-  "quantity_needed": "5 kg",
-  "food_type": "animal",
-  "needed_by": "2026-04-02T18:00:00Z",
-  "status": "open",
-  "latitude": 27.7105,
-  "longitude": 85.3487,
-  "address": "Pashupatinath Area, Kathmandu",
-  "distance_km": 3.1,
-  "recipient": {
-    "id": 7,
-    "name": "Street Animal Care Nepal",
-    "is_verified": false
-  },
-  "accepted_by": null,
-  "created_at": "2026-04-01T14:00:00Z"
-}
+### 7.7 File Structure per Module
+
 ```
+app/Modules/{ModuleName}/
+├── Entities/       {ModelName}.php           extends BaseModel
+├── Repositories/   {ModelName}Repository.php extends BaseRepository
+├── Services/       {ModelName}Service.php     business logic
+├── Controllers/    {Role}{ModelName}Controller.php
+├── Requests/       Store{ModelName}Request.php / Update{ModelName}Request.php
+└── Resources/      {ModelName}Resource.php
+```
+
+### 7.8 API Documentation Sync (Mandatory)
+
+Whenever any route is **added, removed, renamed, or updated**, you **must** update `API_DOC.md` in the same task.
+
+`API_DOC.md` entries must include: HTTP method + path, auth/role requirements, request payload with validation rules, query parameters, success response shape + status code, and known error cases.
 
 ---
 
-## 12. Notes & Gotchas
+## 8. Notes & Gotchas
 
-1. **Magellan geography vs geometry** – Use `geography` (SRID 4326) for distance accuracy in km. `geometry` uses flat-earth math.
-3. **Multiple claims** – A listing can receive multiple claim requests, but only **one** can be confirmed. Rejecting others on confirmation is required.
-4. **Donor accepting a request** – When a donor accepts a food request, it should set `status = accepted` and store `accepted_by`. The request is only `fulfilled` after the recipient marks it complete.
-5. **Photo storage** – Use Laravel's `Storage::disk('public')` locally. In production, switch to S3. Return full URLs in the API resource.
-6. **Passport scopes** – Consider adding scopes `donor` and `recipient` for finer token-level control if needed later.
+1. **Magellan geography vs geometry** – Use `geography` (SRID 4326). `geometry` uses flat-earth math and gives wrong distances.
+2. **Multiple claims** – A listing can receive multiple claim requests, but only one can be confirmed. Confirming one must reject all others automatically.
+3. **Donor accepting a request** – Sets `status = accepted` and `accepted_by`. Only `fulfilled` after recipient marks complete.
+4. **Photo storage** – Use `Storage::disk('public')` locally; switch to S3 in production. Return full URLs from the API resource.
+5. **`$this->model` before `parent::__construct()`** – Repository constructor reads `$this->model` to derive `tableName` and `modelName`. Always assign it first.
 
 ===
 
