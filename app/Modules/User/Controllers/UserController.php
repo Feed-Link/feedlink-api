@@ -211,6 +211,11 @@ class UserController extends Controller
     {
         try {
             $user = Auth::user();
+
+            if (! $user) {
+                throw new Exception('User not found', Response::HTTP_NOT_FOUND);
+            }
+
             $user->update(['fcm_token' => $request->validated()['fcm_token']]);
 
             return $this->success('Device token registered', Response::HTTP_OK);
