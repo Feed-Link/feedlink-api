@@ -1,10 +1,12 @@
 <?php
 
 use App\Modules\FoodListings\Controllers\DonorFoodListingController;
-use App\Modules\FoodListings\Controllers\RecipientFoodListingController;
 use App\Modules\FoodListings\Controllers\NearbyListingController;
 use App\Modules\FoodListings\Controllers\NearbyRequestController;
+use App\Modules\FoodListings\Controllers\RecipientFoodListingController;
 use App\Modules\FoodListings\Controllers\UserLocationController;
+use App\Modules\Notifications\Controllers\NotificationController;
+use App\Modules\Upload\Controllers\UploadController;
 use App\Modules\User\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -75,4 +77,9 @@ Route::middleware(['auth:api'])
         Route::put('user/location', [UserLocationController::class, 'update']);
         Route::get('user/profile', [UserController::class, 'profile']);
         Route::put('user/profile', [UserController::class, 'updateProfile']);
+        Route::post('upload/photo', [UploadController::class, 'photo']);
+        Route::post('user/device-token', [UserController::class, 'registerDeviceToken']);
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::put('notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::put('notifications/{id}/read', [NotificationController::class, 'markRead']);
     });

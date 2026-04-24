@@ -3,22 +3,21 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\User\Request\LoginRequest;
-use App\Modules\User\Request\SignupRequest;
+use App\Modules\Notifications\Requests\DeviceTokenRequest;
 use App\Modules\User\Request\ForgotPasswordRequest;
+use App\Modules\User\Request\LoginRequest;
 use App\Modules\User\Request\ResetPasswordRequest;
+use App\Modules\User\Request\SignupRequest;
 use App\Modules\User\Services\UserService;
+use Exception;
 use Illuminate\Http\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Exception;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
 {
-    public function __construct(protected UserService $userService)
-    {
-    }
+    public function __construct(protected UserService $userService) {}
 
     public function register(SignupRequest $request): JsonResponse
     {
@@ -102,6 +101,7 @@ class UserController extends Controller
             return $this->handleException($exception);
         }
     }
+
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
         try {
@@ -134,7 +134,7 @@ class UserController extends Controller
         try {
             $user = Auth::user();
 
-            if (!$user) {
+            if (! $user) {
                 throw new Exception('User not found', Response::HTTP_NOT_FOUND);
             }
 
@@ -170,7 +170,7 @@ class UserController extends Controller
         try {
             $user = Auth::user();
 
-            if (!$user) {
+            if (! $user) {
                 throw new Exception('User not found', Response::HTTP_NOT_FOUND);
             }
 
@@ -202,6 +202,23 @@ class UserController extends Controller
                     'roles' => $user->roles->pluck('name'),
                 ]
             );
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function registerDeviceToken(DeviceTokenRequest $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (! $user) {
+                throw new Exception('User not found', Response::HTTP_NOT_FOUND);
+            }
+
+            $user->update(['fcm_token' => $request->validated()['fcm_token']]);
+
+            return $this->success('Device token registered', Response::HTTP_OK);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }

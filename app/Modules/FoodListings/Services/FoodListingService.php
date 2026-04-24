@@ -2,16 +2,41 @@
 
 namespace App\Modules\FoodListings\Services;
 
-use App\Modules\FoodListings\Repositories\FoodListingRepository;
 use App\Modules\Core\Entities\Tag;
-use App\Modules\FoodListings\Entities\FoodListing;
+use App\Modules\Core\Enums\ClaimStatusEnum;
+use App\Modules\Core\Enums\ListingStatusEnum;
+use App\Modules\FoodListings\Repositories\FoodListingRepository;
 use Exception;
+use Illuminate\Support\Collection;
 
 class FoodListingService
 {
     public function __construct(
         public FoodListingRepository $foodListingRepository
     ) {}
+
+    public function getListingsForDonor(string $donorId, array $params = []): object
+    {
+        return $this->foodListingRepository->fetchActiveByDonor($donorId, $params);
+    }
+
+    public function getClaimsForListing(string $listingId, string $donorId): Collection
+    {
+        $listing = $this->foodListingRepository->fetchBy('id', $listingId);
+
+        if (! $listing) {
+            throw new Exception('Listing not found', 404);
+        }
+
+        if ($listing->donor_id !== $donorId) {
+            throw new Exception('Unauthorized', 403);
+        }
+
+        return $listing->claims()
+            ->with('recipient')
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
 
     public function createListing(array $data, string $donorId): object
     {
@@ -23,11 +48,10 @@ class FoodListingService
             'lat' => $data['latitude'],
             'long' => $data['longitude'],
         ];
-        $data['status'] = FoodListing::STATUS[0]; // active
+        $data['status'] = ListingStatusEnum::ACTIVE->value;
 
         $listing = $this->foodListingRepository->store($data);
 
-        // Sync tags
         $tagIds = Tag::whereIn('slug', $tagSlugs)->pluck('id')->toArray();
         $listing->tags()->sync($tagIds);
 
@@ -38,7 +62,7 @@ class FoodListingService
     {
         $listing = $this->foodListingRepository->fetchBy('id', $id);
 
-        if (!$listing) {
+        if (! $listing) {
             throw new Exception('Listing not found', 404);
         }
 
@@ -46,7 +70,7 @@ class FoodListingService
             throw new Exception('Unauthorized', 403);
         }
 
-        if ($listing->status !== FoodListing::STATUS[0]) { // active
+        if ($listing->status !== ListingStatusEnum::ACTIVE->value) {
             throw new Exception('Can only update active listings', 400);
         }
 
@@ -62,7 +86,6 @@ class FoodListingService
 
         $listing = $this->foodListingRepository->update($id, $data);
 
-        // Sync tags if provided
         if ($tagSlugs !== null) {
             $tagIds = Tag::whereIn('slug', $tagSlugs)->pluck('id')->toArray();
             $listing->tags()->sync($tagIds);
@@ -75,7 +98,7 @@ class FoodListingService
     {
         $listing = $this->foodListingRepository->fetchBy('id', $id);
 
-        if (!$listing) {
+        if (! $listing) {
             throw new Exception('Listing not found', 404);
         }
 
@@ -83,12 +106,12 @@ class FoodListingService
             throw new Exception('Unauthorized', 403);
         }
 
-        if ($listing->status !== FoodListing::STATUS[0]) { // active
+        if ($listing->status !== ListingStatusEnum::ACTIVE->value) {
             throw new Exception('Can only cancel active listings', 400);
         }
 
         $this->foodListingRepository->update($id, [
-            'status' => FoodListing::STATUS[1], // cancelled
+            'status' => ListingStatusEnum::CANCELLED->value,
             'cancelled_by' => $donorId,
         ]);
     }
@@ -97,7 +120,7 @@ class FoodListingService
     {
         $listing = $this->foodListingRepository->fetchBy('id', $listingId);
 
-        if (!$listing) {
+        if (! $listing) {
             throw new Exception('Listing not found', 404);
         }
 
@@ -107,36 +130,36 @@ class FoodListingService
 
         $claim = $listing->claims()->where('id', $claimId)->first();
 
-        if (!$claim) {
+        if (! $claim) {
             throw new Exception('Claim not found', 404);
         }
 
-        if ($claim->status !== 'pending') {
+        if ($claim->status !== ClaimStatusEnum::PENDING->value) {
             throw new Exception('Claim is not pending', 400);
         }
 
-        $claim->update(['status' => 'confirmed']);
+        $claim->update(['status' => ClaimStatusEnum::CONFIRMED->value]);
 
         $listing->update([
             'listing_claim_id' => $claimId,
-            'status' => FoodListing::STATUS[5], // claimed
+            'status' => ListingStatusEnum::CLAIMED->value,
             'claimed_by' => $claim->recipient_id,
             'confirmed_at' => now(),
         ]);
 
         $listing->claims()
             ->where('id', '!=', $claimId)
-            ->where('status', 'pending')
-            ->update(['status' => 'rejected']);
+            ->where('status', ClaimStatusEnum::PENDING->value)
+            ->update(['status' => ClaimStatusEnum::REJECTED->value]);
 
-        return $listing->fresh(['donor', 'claimedRecipient']);
+        return $listing->fresh(['donor', 'claimedRecipient', 'tags']);
     }
 
     public function rejectClaim(string $listingId, string $claimId, string $donorId): void
     {
         $listing = $this->foodListingRepository->fetchBy('id', $listingId);
 
-        if (!$listing) {
+        if (! $listing) {
             throw new Exception('Listing not found', 404);
         }
 
@@ -146,15 +169,15 @@ class FoodListingService
 
         $claim = $listing->claims()->where('id', $claimId)->first();
 
-        if (!$claim) {
+        if (! $claim) {
             throw new Exception('Claim not found', 404);
         }
 
-        if ($claim->status !== 'pending') {
+        if ($claim->status !== ClaimStatusEnum::PENDING->value) {
             throw new Exception('Claim cannot be rejected', 400);
         }
 
-        $claim->update(['status' => 'rejected']);
+        $claim->update(['status' => ClaimStatusEnum::REJECTED->value]);
     }
 
     public function formatListingResponse(object $listing, ?float $distanceKm = null): array
@@ -164,7 +187,7 @@ class FoodListingService
             'title' => $listing->title,
             'description' => $listing->description,
             'quantity' => $listing->quantity,
-            'tags' => $listing->relationLoaded('tags') ? $listing->tags->map(fn($tag) => [
+            'tags' => $listing->relationLoaded('tags') ? $listing->tags->map(fn ($tag) => [
                 'slug' => $tag->slug,
                 'name' => $tag->name,
                 'category' => $tag->category,

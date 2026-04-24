@@ -65,6 +65,11 @@ Validation failures (`422`) may return Laravel validation error format.
 | PUT | `/user/location` | Yes | Any |
 | GET | `/user/profile` | Yes | Any |
 | PUT | `/user/profile` | Yes | Any |
+| POST | `/user/device-token` | Yes | Any |
+| GET | `/notifications` | Yes | Any |
+| PUT | `/notifications/{id}/read` | Yes | Any |
+| PUT | `/notifications/read-all` | Yes | Any |
+| POST | `/upload/photo` | Yes | Any |
 
 ---
 
@@ -295,10 +300,10 @@ Reset password using OTP.
 All require `auth:api` + role `donor`.
 
 ### GET `/donor/listings`
-Get donor listings (supports repository-driven filtering/pagination params).
+Get donor's own listings (supports repository-driven filtering/pagination params).
 
-**Common query params used in project:**
-- `status` (optional)
+**Query params:**
+- `status` (optional, one of `active`, `claimed`, `completed`, `expired`, `cancelled`)
 - `page`, `per_page`, `sort_by`, `sort_order` (optional)
 
 **Response (200):**
@@ -422,7 +427,7 @@ Update listing.
 Actual `data` includes full listing shape.
 
 ### DELETE `/donor/listings/{id}`
-Cancel listing.
+Cancel listing. Only allowed when `status = active`.
 
 **Response (200):**
 ```json
@@ -433,8 +438,13 @@ Cancel listing.
 }
 ```
 
+**Error cases:**
+- `400` Can only cancel active listings
+- `403` Not the owner of this listing
+- `404` Listing not found
+
 ### GET `/donor/listings/{listingId}/claims`
-Get all claims for listing.
+Get all claims for a listing. Ordered by `created_at` desc.
 
 **Response (200):**
 ```json
@@ -458,25 +468,24 @@ Get all claims for listing.
 }
 ```
 
-### POST `/donor/listings/{listingId}/claims/{claimId}/confirm`
-Confirm one claim.
+Claim `status` values: `pending`, `confirmed`, `rejected`.
 
-**Response (200):**
-```json
-{
-  "status_code": 200,
-  "message": "Claim confirmed successfully",
-  "data": {
-    "id": "listing-uuid",
-    "status": "claimed",
-    "claimed_by": "recipient-uuid"
-  }
-}
-```
-Actual `data` includes full listing shape.
+**Error cases:**
+- `403` Not the owner of this listing
+- `404` Listing not found
+
+### POST `/donor/listings/{listingId}/claims/{claimId}/confirm`
+Confirm one claim. Sets listing `status = claimed`, rejects all other pending claims automatically.
+
+**Response (200):** Full listing shape (same as `GET /donor/listings` item).
+
+**Error cases:**
+- `400` Claim is not pending
+- `403` Not the owner of this listing
+- `404` Listing not found / Claim not found
 
 ### POST `/donor/listings/{listingId}/claims/{claimId}/reject`
-Reject claim.
+Reject a pending claim.
 
 **Response (200):**
 ```json
@@ -486,6 +495,11 @@ Reject claim.
   "data": null
 }
 ```
+
+**Error cases:**
+- `400` Claim is not pending
+- `403` Not the owner of this listing
+- `404` Listing not found / Claim not found
 
 ---
 
@@ -721,6 +735,33 @@ Get current profile.
 }
 ```
 
+### POST `/upload/photo`
+Upload a photo to Cloudinary. Call this **before** creating a listing — upload each photo first, collect the returned URLs, then include them in the `photos` array of `POST /donor/listings`.
+
+**Request:** `multipart/form-data`
+
+| Field | Type | Rules |
+|---|---|---|
+| `photo` | file | required, image, max 5MB, jpg/jpeg/png/webp |
+
+**Response (201):**
+```json
+{
+  "status_code": 201,
+  "message": "Photo uploaded successfully",
+  "data": {
+    "url": "https://res.cloudinary.com/feedlink/image/upload/v.../feedlink/listings/abc123.jpg",
+    "public_id": "feedlink/listings/abc123"
+  }
+}
+```
+
+**Error cases:**
+- `422` Missing or invalid file
+- `500` Cloudinary upload failed
+
+---
+
 ### PUT `/user/profile`
 Update profile.
 
@@ -760,6 +801,71 @@ Update profile.
 
 ---
 
+### POST `/user/device-token`
+Register or update the authenticated user's Firebase FCM device token. Call this on every app launch after login.
+
+**Request body:**
+```json
+{ "fcm_token": "firebase-device-token-string" }
+```
+
+**Validation:**
+- `fcm_token`: required|string|max:255
+
+**Response (200):**
+```json
+{ "status_code": 200, "message": "Device token registered", "data": null }
+```
+
+---
+
+### GET `/notifications`
+Paginated notification center. `unread_count` drives the iOS bell badge without a separate request.
+
+**Query params:**
+- `per_page` (optional, default 15)
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Notifications retrieved",
+  "data": {
+    "items": [
+      {
+        "id": "uuid",
+        "type": "claim_received",
+        "title": "New claim on your listing",
+        "body": "Asha Shelter wants to claim Dal Bhat",
+        "data": { "listing_id": "uuid", "claim_id": "uuid", "listing_title": "Dal Bhat" },
+        "read_at": null,
+        "created_at": "2026-04-23T10:00:00.000000Z"
+      }
+    ],
+    "unread_count": 3,
+    "meta": { "current_page": 1, "per_page": 15, "total": 5, "last_page": 1 }
+  }
+}
+```
+
+### PUT `/notifications/{id}/read`
+Mark a single notification as read. Silently no-ops if already read.
+
+**Response (200):**
+```json
+{ "status_code": 200, "message": "Notification marked as read", "data": null }
+```
+
+### PUT `/notifications/read-all`
+Mark all of the authenticated user's notifications as read.
+
+**Response (200):**
+```json
+{ "status_code": 200, "message": "All notifications marked as read", "data": null }
+```
+
+---
+
 ## 7. Enums Used in Payload Validation
 
 ### `tags` allowed values
@@ -774,23 +880,37 @@ Update profile.
 - `donor`
 - `recipient`
 
+### `listing status` values (`ListingStatusEnum`)
+- `active` — visible, accepting claims
+- `claimed` — one claim confirmed, awaiting pickup
+- `completed` — food collected
+- `expired` — passed `expires_at` with no claim, or past `pickup_before` with uncollected confirmed claim
+- `cancelled` — cancelled by donor
+
+### `claim status` values (`ClaimStatusEnum`)
+- `pending` — submitted, awaiting donor decision
+- `confirmed` — donor accepted this claim
+- `rejected` — donor rejected, or auto-rejected when another claim was confirmed
+
 ---
 
 ## 8. Common Error Cases
 
-Examples from current code:
 - `404` Listing not found / Claim not found / User not found
 - `403` Unauthorized (owner mismatch or role mismatch)
-- `400` Listing is not available / Claim is not pending / Email not verified
+- `400` Can only update/cancel active listings / Claim is not pending / Email not verified
 - `401` Invalid or expired refresh token
-- `422` Validation errors
+- `422` Validation errors (includes missing `terms_accepted` on registration)
 
 ---
 
 ## 9. Frontend Integration Notes
 
 - Use `GET /auth/logout` (not POST).
-- `register` currently returns email string in `data`, not token payload.
+- `register` returns email string in `data`, not token payload. Token is issued after OTP verification.
+- `register` requires `terms_accepted: true` — omitting it returns a 422.
 - `login` returns `202 Accepted` status.
 - `reset-password` requires `password_confirmation`.
+- Listing `PUT` updates are only allowed when `status = active`.
+- `expires_at` closes the listing to new claims. `pickup_before` is the confirmed recipient's pickup deadline. The scheduler expires `claimed` listings past `pickup_before` automatically.
 - `recipient/requests` CRUD routes are not currently registered.
