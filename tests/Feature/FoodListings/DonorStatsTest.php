@@ -76,6 +76,8 @@ class DonorStatsTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('data.listings_completed', 0)
             ->assertJsonPath('data.listings_active', 0)
+            ->assertJsonPath('data.listings_cancelled', 0)
+            ->assertJsonPath('data.listings_expired', 0)
             ->assertJsonPath('data.unique_recipients_served', 0);
     }
 
