@@ -2,9 +2,10 @@
 
 namespace App\Modules\FoodListings\Services;
 
+use App\Modules\Core\Enums\NotificationTypeEnum;
 use App\Modules\FoodListings\Entities\ListingClaim;
 use App\Modules\FoodListings\Repositories\ListingClaimRepository;
-use App\Modules\Notifications\Jobs\SendClaimNotificationJob;
+use App\Modules\Notifications\Jobs\SendNotificationJob;
 use Exception;
 
 class ListingClaimService
@@ -26,8 +27,19 @@ class ListingClaimService
             'note' => $note,
         ]);
 
-        SendClaimNotificationJob::dispatch(
-            $claim->load(['listing.donor', 'recipient'])
+        $claim->load(['listing.donor', 'recipient']);
+        $listing = $claim->listing;
+
+        SendNotificationJob::dispatch(
+            $listing->donor_id,
+            NotificationTypeEnum::CLAIM_RECEIVED->value,
+            'New claim on your listing',
+            "{$claim->recipient->name} wants to claim {$listing->title}",
+            [
+                'listing_id' => $listing->id,
+                'claim_id' => $claim->id,
+                'listing_title' => $listing->title,
+            ]
         );
 
         return $claim;
@@ -81,7 +93,7 @@ class ListingClaimService
 
     public function getStatuses(): array
     {
-        return array_slice(ListingClaim::STATUS, 5, 5); // pending, accepted, claimed, completed, expired, cancelled, rejected
+        return array_slice(ListingClaim::STATUS, 5, 5);
     }
 
     public function formatClaimResponse(object $claim): array
