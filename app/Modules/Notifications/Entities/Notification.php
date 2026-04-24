@@ -4,6 +4,7 @@ namespace App\Modules\Notifications\Entities;
 
 use App\Models\User;
 use App\Modules\Core\Entities\BaseModel;
+use App\Modules\Core\Enums\NotificationTypeEnum;
 use Database\Factories\NotificationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +29,7 @@ class Notification extends BaseModel
     protected function casts(): array
     {
         return [
+            'type' => NotificationTypeEnum::class,
             'data' => 'array',
             'read_at' => 'datetime',
         ];

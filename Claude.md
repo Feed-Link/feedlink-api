@@ -265,7 +265,19 @@ Whenever any route is **added, removed, renamed, or updated**, you **must** upda
 
 ---
 
-## 8. Notes & Gotchas
+## 8. Production Database — Critical Rules
+
+> **WARNING:** The `.env` DB connection points to a live **production** DigitalOcean PostgreSQL database. Every command that touches the DB runs against production.
+
+- **NEVER run `php artisan migrate:fresh`** — it drops all tables and destroys production data.
+- **NEVER run `php artisan migrate`** unless explicitly deploying a new migration. Migrations are handled automatically by the CI/CD pipeline on push to `master`.
+- **NEVER use `RefreshDatabase`** in tests — it calls `migrate:fresh` internally. Use `DatabaseTransactions` instead (already configured in `tests/TestCase.php`).
+- Tests use `DatabaseTransactions` which wraps each test in a rolled-back transaction — safe against production.
+- If you need to verify the schema, use `php artisan migrate:status` (read-only).
+
+---
+
+## 9. Notes & Gotchas
 
 1. **Magellan geography vs geometry** – Use `geography` (SRID 4326). `geometry` uses flat-earth math and gives wrong distances.
 2. **Multiple claims** – A listing can receive multiple claim requests, but only one can be confirmed. Confirming one must reject all others automatically.

@@ -18,6 +18,11 @@ class DeviceTokenRequest extends BaseRequest
         ];
     }
 
+    public function update(): array
+    {
+        return [];
+    }
+
     public function messages(): array
     {
         return [

@@ -32,11 +32,22 @@ class NotificationRepository extends BaseRepository
 
     public function markAsRead(string $notificationId, string $userId): void
     {
-        $this->model->query()
+        $affected = $this->model->query()
             ->where('id', $notificationId)
             ->where('user_id', $userId)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
+
+        if ($affected === 0) {
+            $exists = $this->model->query()
+                ->where('id', $notificationId)
+                ->where('user_id', $userId)
+                ->exists();
+
+            if (! $exists) {
+                throw new \Exception('Notification not found', 404);
+            }
+        }
     }
 
     public function markAllAsRead(string $userId): void

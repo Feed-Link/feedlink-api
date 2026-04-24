@@ -23,24 +23,32 @@ class SendClaimNotificationJob implements ShouldQueue
 
     public function handle(NotificationService $notificationService, PushNotificationService $pushService): void
     {
-        $donor = $this->claim->listing->donor;
-        $recipient = $this->claim->recipient;
-        $listing = $this->claim->listing;
+        $listing   = $this->claim->listing ?? null;
+        $donor     = $listing->donor ?? null;
+        $recipient = $this->claim->recipient ?? null;
+
+        if (! $listing || ! $donor || ! $recipient) {
+            Log::warning('SendClaimNotificationJob: missing relations, skipping', [
+                'claim_id' => $this->claim->id ?? null,
+            ]);
+
+            return;
+        }
 
         $title = 'New claim on your listing';
-        $body = "{$recipient->name} wants to claim {$listing->title}";
-        $data = [
-            'listing_id' => $listing->id,
-            'claim_id' => $this->claim->id,
+        $body  = "{$recipient->name} wants to claim {$listing->title}";
+        $data  = [
+            'listing_id'    => $listing->id,
+            'claim_id'      => $this->claim->id,
             'listing_title' => $listing->title,
         ];
 
         $notificationService->create([
             'user_id' => $donor->id,
-            'type' => NotificationTypeEnum::CLAIM_RECEIVED->value,
-            'title' => $title,
-            'body' => $body,
-            'data' => $data,
+            'type'    => NotificationTypeEnum::CLAIM_RECEIVED->value,
+            'title'   => $title,
+            'body'    => $body,
+            'data'    => $data,
         ]);
 
         if (! $donor->fcm_token) {
@@ -52,7 +60,7 @@ class SendClaimNotificationJob implements ShouldQueue
         } catch (Exception $e) {
             Log::error('FCM push failed', [
                 'user_id' => $donor->id,
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
             ]);
         }
     }

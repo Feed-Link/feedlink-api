@@ -2,25 +2,31 @@
 
 namespace App\Modules\Notifications\Services;
 
+use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 
 class PushNotificationService
 {
-    public function send(string $fcmToken, string $title, string $body, array $data = []): void
+    private Messaging $messaging;
+
+    public function __construct()
     {
         $credentials = json_decode(config('firebase.credentials'), true)
             ?? config('firebase.credentials');
 
-        $messaging = (new Factory)
+        $this->messaging = (new Factory)
             ->withServiceAccount($credentials)
             ->createMessaging();
+    }
 
+    public function send(string $fcmToken, string $title, string $body, array $data = []): void
+    {
         $message = CloudMessage::withTarget('token', $fcmToken)
             ->withNotification(Notification::create($title, $body))
             ->withData(array_map('strval', $data));
 
-        $messaging->send($message);
+        $this->messaging->send($message);
     }
 }
