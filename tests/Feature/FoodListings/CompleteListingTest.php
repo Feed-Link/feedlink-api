@@ -97,7 +97,7 @@ class CompleteListingTest extends TestCase
     {
         Passport::actingAs($this->recipient);
 
-        $response = $this->postJson('/api/recipient/listings/nonexistent-uuid/complete');
+        $response = $this->postJson('/api/recipient/listings/00000000-0000-0000-0000-000000000000/complete');
 
         $response->assertStatus(404);
     }
