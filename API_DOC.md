@@ -443,7 +443,7 @@ Update listing.
 Actual `data` includes full listing shape.
 
 ### DELETE `/donor/listings/{id}`
-Cancel listing. Only allowed when `status = active`.
+Cancel listing. Allowed when `status` is `active` or `claimed`. Cancelling a claimed listing notifies the confirmed recipient.
 
 **Response (200):**
 ```json
