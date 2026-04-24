@@ -41,6 +41,7 @@ class FoodListingResource extends JsonResource
                     'id' => $this->donor->id,
                     'name' => $this->donor->name,
                     'is_verified' => (bool) ($this->donor->is_verified ?? false),
+                    'contact' => $this->donor->contact,
                 ]
             ),
             'confirmed_at' => $this->confirmed_at?->toISOString(),

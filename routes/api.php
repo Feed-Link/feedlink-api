@@ -62,6 +62,7 @@ Route::prefix('recipient')
         Route::get('listings/{id}', [RecipientFoodListingController::class, 'show']);
         Route::post('listings/{listingId}/claim', [RecipientFoodListingController::class, 'claim']);
         Route::delete('listings/{listingId}/claim', [RecipientFoodListingController::class, 'cancelClaim']);
+        Route::post('listings/{listingId}/complete', [RecipientFoodListingController::class, 'complete']);
         Route::get('claims', [RecipientFoodListingController::class, 'myClaims']);
     });
 

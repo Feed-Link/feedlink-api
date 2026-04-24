@@ -59,6 +59,7 @@ Validation failures (`422`) may return Laravel validation error format.
 | GET | `/recipient/listings/{id}` | Yes | recipient |
 | POST | `/recipient/listings/{listingId}/claim` | Yes | recipient |
 | DELETE | `/recipient/listings/{listingId}/claim` | Yes | recipient |
+| POST | `/recipient/listings/{listingId}/complete` | Yes | recipient |
 | GET | `/recipient/claims` | Yes | recipient |
 | GET | `/listings/nearby` | Yes | Any |
 | GET | `/requests/nearby` | Yes | Any |
@@ -583,6 +584,23 @@ Cancel own claim.
 }
 ```
 
+### POST `/recipient/listings/{listingId}/complete`
+Mark a claimed listing as collected. Only callable by the recipient who has a confirmed claim on it.
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Pickup marked as complete",
+  "data": { "...full listing shape with status: \"completed\"..." }
+}
+```
+
+**Error cases:**
+- `404` Listing not found
+- `403` You don't have a confirmed claim on this listing
+- `400` Listing is not in claimed status
+
 ### GET `/recipient/claims`
 Get my claims (supports repository filtering).
 
@@ -914,3 +932,4 @@ Mark all of the authenticated user's notifications as read.
 - Listing `PUT` updates are only allowed when `status = active`.
 - `expires_at` closes the listing to new claims. `pickup_before` is the confirmed recipient's pickup deadline. The scheduler expires `claimed` listings past `pickup_before` automatically.
 - `recipient/requests` CRUD routes are not currently registered.
+- Listing resource `donor` shape now includes `contact` (phone number) — use this on the confirmed-claim detail screen so the recipient can call before arriving.

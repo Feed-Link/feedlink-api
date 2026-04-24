@@ -5,7 +5,9 @@ namespace App\Modules\FoodListings\Services;
 use App\Modules\Core\Entities\Tag;
 use App\Modules\Core\Enums\ClaimStatusEnum;
 use App\Modules\Core\Enums\ListingStatusEnum;
+use App\Modules\Core\Enums\NotificationTypeEnum;
 use App\Modules\FoodListings\Repositories\FoodListingRepository;
+use App\Modules\Notifications\Jobs\SendNotificationJob;
 use Exception;
 use Illuminate\Support\Collection;
 
@@ -138,6 +140,11 @@ class FoodListingService
             throw new Exception('Claim is not pending', 400);
         }
 
+        $otherPendingClaims = $listing->claims()
+            ->where('id', '!=', $claimId)
+            ->where('status', ClaimStatusEnum::PENDING->value)
+            ->get();
+
         $claim->update(['status' => ClaimStatusEnum::CONFIRMED->value]);
 
         $listing->update([
@@ -151,6 +158,32 @@ class FoodListingService
             ->where('id', '!=', $claimId)
             ->where('status', ClaimStatusEnum::PENDING->value)
             ->update(['status' => ClaimStatusEnum::REJECTED->value]);
+
+        SendNotificationJob::dispatch(
+            $claim->recipient_id,
+            NotificationTypeEnum::CLAIM_CONFIRMED->value,
+            'Your claim was accepted!',
+            "Get ready to pick up {$listing->title}",
+            [
+                'listing_id' => $listing->id,
+                'claim_id' => $claim->id,
+                'listing_title' => $listing->title,
+            ]
+        );
+
+        foreach ($otherPendingClaims as $rejectedClaim) {
+            SendNotificationJob::dispatch(
+                $rejectedClaim->recipient_id,
+                NotificationTypeEnum::CLAIM_REJECTED->value,
+                'Claim not accepted',
+                "Your claim on {$listing->title} was not accepted",
+                [
+                    'listing_id' => $listing->id,
+                    'claim_id' => $rejectedClaim->id,
+                    'listing_title' => $listing->title,
+                ]
+            );
+        }
 
         return $listing->fresh(['donor', 'claimedRecipient', 'tags']);
     }
@@ -178,6 +211,18 @@ class FoodListingService
         }
 
         $claim->update(['status' => ClaimStatusEnum::REJECTED->value]);
+
+        SendNotificationJob::dispatch(
+            $claim->recipient_id,
+            NotificationTypeEnum::CLAIM_REJECTED->value,
+            'Claim not accepted',
+            "Your claim on {$listing->title} was not accepted",
+            [
+                'listing_id' => $listing->id,
+                'claim_id' => $claim->id,
+                'listing_title' => $listing->title,
+            ]
+        );
     }
 
     public function formatListingResponse(object $listing, ?float $distanceKm = null): array
