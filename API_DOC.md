@@ -332,7 +332,7 @@ Get donor's own listings (supports repository-driven filtering/pagination params
       "location": { "lat": 27.7172, "lng": 85.324 },
       "address": "Thamel, Kathmandu",
       "distance_km": null,
-      "donor": { "id": "donor-uuid", "name": "Donor Name", "is_verified": false },
+      "donor": { "id": "donor-uuid", "name": "Donor Name", "is_verified": false, "contact": "9841000000" },
       "confirmed_at": null,
       "created_at": "2026-04-05T06:33:42.000000Z"
     }
@@ -909,6 +909,12 @@ Mark all of the authenticated user's notifications as read.
 - `pending` — submitted, awaiting donor decision
 - `confirmed` — donor accepted this claim
 - `rejected` — donor rejected, or auto-rejected when another claim was confirmed
+
+### `notification type` values (`NotificationTypeEnum`)
+- `claim_received` — donor receives when a recipient claims their listing
+- `claim_confirmed` — recipient receives when donor confirms their claim
+- `claim_rejected` — recipient receives when donor rejects their claim (manual or auto-reject)
+- `pickup_completed` — donor receives when confirmed recipient marks pickup done
 
 ---
 
