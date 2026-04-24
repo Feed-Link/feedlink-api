@@ -82,6 +82,7 @@ class DonorReopenListingTest extends TestCase
             'status' => 'active',
             'claimed_by' => null,
             'confirmed_at' => null,
+            'listing_claim_id' => null,
         ]);
     }
 
