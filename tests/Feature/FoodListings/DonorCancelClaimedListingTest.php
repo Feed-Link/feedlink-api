@@ -67,6 +67,7 @@ class DonorCancelClaimedListingTest extends TestCase
         $this->assertDatabaseHas('food_listings', [
             'id' => $this->listing->id,
             'status' => 'cancelled',
+            'cancelled_by' => $this->donor->id,
         ]);
     }
 
