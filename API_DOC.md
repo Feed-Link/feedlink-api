@@ -910,6 +910,16 @@ Mark all of the authenticated user's notifications as read.
 - `confirmed` — donor accepted this claim
 - `rejected` — donor rejected, or auto-rejected when another claim was confirmed
 
+### `notification type` values (`NotificationTypeEnum`)
+
+| Type | Sent to | Trigger |
+|---|---|---|
+| `claim_received` | donor | recipient submits a claim on donor's listing |
+| `claim_confirmed` | recipient | donor confirms recipient's claim |
+| `claim_rejected` | recipient | donor rejects claim, or claim auto-rejected when another is confirmed |
+| `pickup_completed` | donor | recipient marks pickup as complete |
+| `listing_expired_uncollected` | donor | scheduler expires a `claimed` listing that passed `pickup_before` without completion |
+
 ---
 
 ## 8. Common Error Cases
