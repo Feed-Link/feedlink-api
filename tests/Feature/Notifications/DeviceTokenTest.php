@@ -3,14 +3,11 @@
 namespace Tests\Feature\Notifications;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Passport\Passport;
 use Tests\TestCase;
 
 class DeviceTokenTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_authenticated_user_can_register_device_token(): void
     {
         $user = User::factory()->create();
