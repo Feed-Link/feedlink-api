@@ -55,12 +55,24 @@ Validation failures (`422`) may return Laravel validation error format.
 | GET | `/donor/listings/{listingId}/claims` | Yes | donor |
 | POST | `/donor/listings/{listingId}/claims/{claimId}/confirm` | Yes | donor |
 | POST | `/donor/listings/{listingId}/claims/{claimId}/reject` | Yes | donor |
+| GET | `/donor/requests` | Yes | donor |
+| POST | `/donor/requests/{requestId}/accept` | Yes | donor |
+| DELETE | `/donor/requests/{requestId}/accept` | Yes | donor |
 | GET | `/recipient/listings` | Yes | recipient |
 | GET | `/recipient/listings/{id}` | Yes | recipient |
 | POST | `/recipient/listings/{listingId}/claim` | Yes | recipient |
 | DELETE | `/recipient/listings/{listingId}/claim` | Yes | recipient |
 | POST | `/recipient/listings/{listingId}/complete` | Yes | recipient |
 | GET | `/recipient/claims` | Yes | recipient |
+| GET | `/recipient/requests` | Yes | recipient |
+| POST | `/recipient/requests` | Yes | recipient |
+| GET | `/recipient/requests/{id}` | Yes | recipient |
+| PUT | `/recipient/requests/{id}` | Yes | recipient |
+| DELETE | `/recipient/requests/{id}` | Yes | recipient |
+| GET | `/recipient/requests/{requestId}/acceptances` | Yes | recipient |
+| POST | `/recipient/requests/{requestId}/acceptances/{acceptanceId}/confirm` | Yes | recipient |
+| POST | `/recipient/requests/{requestId}/acceptances/{acceptanceId}/reject` | Yes | recipient |
+| POST | `/recipient/requests/{requestId}/complete` | Yes | recipient |
 | GET | `/listings/nearby` | Yes | Any |
 | GET | `/requests/nearby` | Yes | Any |
 | PUT | `/user/location` | Yes | Any |
@@ -919,6 +931,11 @@ Mark all of the authenticated user's notifications as read.
 | `claim_rejected` | recipient | donor rejects claim, or claim auto-rejected when another is confirmed |
 | `pickup_completed` | donor | recipient marks pickup as complete |
 | `listing_expired_uncollected` | donor | scheduler expires a `claimed` listing that passed `pickup_before` without completion |
+| `request_accepted` | recipient | donor submits an acceptance offer on recipient's food request |
+| `acceptance_confirmed` | donor | recipient confirms donor's acceptance offer |
+| `acceptance_rejected` | donor | recipient rejects donor's acceptance offer |
+| `acceptance_withdrawn` | recipient | donor withdraws their pending acceptance offer |
+| `request_fulfilled` | donor | recipient marks food request as fulfilled |
 
 ---
 

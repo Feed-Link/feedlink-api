@@ -1,9 +1,11 @@
 <?php
 
 use App\Modules\FoodListings\Controllers\DonorFoodListingController;
+use App\Modules\FoodListings\Controllers\DonorFoodRequestController;
 use App\Modules\FoodListings\Controllers\NearbyListingController;
 use App\Modules\FoodListings\Controllers\NearbyRequestController;
 use App\Modules\FoodListings\Controllers\RecipientFoodListingController;
+use App\Modules\FoodListings\Controllers\RecipientFoodRequestController;
 use App\Modules\FoodListings\Controllers\UserLocationController;
 use App\Modules\Notifications\Controllers\NotificationController;
 use App\Modules\Upload\Controllers\UploadController;
@@ -48,6 +50,10 @@ Route::prefix('donor')
         Route::get('listings/{listingId}/claims', [DonorFoodListingController::class, 'claims']);
         Route::post('listings/{listingId}/claims/{claimId}/confirm', [DonorFoodListingController::class, 'confirmClaim']);
         Route::post('listings/{listingId}/claims/{claimId}/reject', [DonorFoodListingController::class, 'rejectClaim']);
+
+        Route::get('requests', [DonorFoodRequestController::class, 'index']);
+        Route::post('requests/{requestId}/accept', [DonorFoodRequestController::class, 'accept']);
+        Route::delete('requests/{requestId}/accept', [DonorFoodRequestController::class, 'withdraw']);
     });
 
 /**
@@ -64,6 +70,16 @@ Route::prefix('recipient')
         Route::delete('listings/{listingId}/claim', [RecipientFoodListingController::class, 'cancelClaim']);
         Route::post('listings/{listingId}/complete', [RecipientFoodListingController::class, 'complete']);
         Route::get('claims', [RecipientFoodListingController::class, 'myClaims']);
+
+        Route::get('requests', [RecipientFoodRequestController::class, 'index']);
+        Route::post('requests', [RecipientFoodRequestController::class, 'store']);
+        Route::get('requests/{id}', [RecipientFoodRequestController::class, 'show']);
+        Route::put('requests/{id}', [RecipientFoodRequestController::class, 'update']);
+        Route::delete('requests/{id}', [RecipientFoodRequestController::class, 'destroy']);
+        Route::get('requests/{requestId}/acceptances', [RecipientFoodRequestController::class, 'acceptances']);
+        Route::post('requests/{requestId}/acceptances/{acceptanceId}/confirm', [RecipientFoodRequestController::class, 'confirmAcceptance']);
+        Route::post('requests/{requestId}/acceptances/{acceptanceId}/reject', [RecipientFoodRequestController::class, 'rejectAcceptance']);
+        Route::post('requests/{requestId}/complete', [RecipientFoodRequestController::class, 'complete']);
     });
 
 /**

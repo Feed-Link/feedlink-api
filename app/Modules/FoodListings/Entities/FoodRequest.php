@@ -3,17 +3,14 @@
 namespace App\Modules\FoodListings\Entities;
 
 use App\Models\User;
+use App\Modules\Core\Entities\BaseModel;
 use App\Modules\Core\Entities\Tag;
 use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class FoodRequest extends Model
+class FoodRequest extends BaseModel
 {
-    use HasUuids;
-
     protected $table = 'food_requests';
 
     protected $fillable = [
@@ -39,6 +36,8 @@ class FoodRequest extends Model
         'location' => Point::class,
     ];
 
+    public const SEARCHABLE = ['title', 'description', 'address'];
+
     public const STATUS = [
         'open',
         'accepted',
@@ -50,7 +49,7 @@ class FoodRequest extends Model
     protected function location(): Attribute
     {
         return Attribute::make(
-            set: fn(mixed $value) => is_array($value)
+            set: fn (mixed $value) => is_array($value)
                 && isset($value['lat'], $value['long'])
                 ? Point::make($value['long'], $value['lat'])
                 : $value
