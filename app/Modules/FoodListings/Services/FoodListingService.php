@@ -7,6 +7,7 @@ use App\Modules\Core\Enums\ClaimStatusEnum;
 use App\Modules\Core\Enums\ListingStatusEnum;
 use App\Modules\Core\Enums\NotificationTypeEnum;
 use App\Modules\FoodListings\Repositories\FoodListingRepository;
+use App\Modules\FoodListings\Repositories\ListingClaimRepository;
 use App\Modules\Notifications\Jobs\SendNotificationJob;
 use Exception;
 use Illuminate\Support\Collection;
@@ -15,7 +16,8 @@ use Illuminate\Support\Str;
 class FoodListingService
 {
     public function __construct(
-        public FoodListingRepository $foodListingRepository
+        public FoodListingRepository $foodListingRepository,
+        public ListingClaimRepository $listingClaimRepository,
     ) {}
 
     public function getListingsForDonor(string $donorId, array $params = []): object
@@ -55,6 +57,54 @@ class FoodListingService
             'latitude' => (float) $listing->latitude,
             'longitude' => (float) $listing->longitude,
         ];
+    }
+
+    public function reopenListing(string $id, string $donorId): object
+    {
+        if (! Str::isUuid($id)) {
+            throw new Exception('Listing not found', 404);
+        }
+
+        $listing = $this->foodListingRepository->fetchBy('id', $id, ['donor']);
+
+        if (! $listing) {
+            throw new Exception('Listing not found', 404);
+        }
+
+        if ($listing->donor_id !== $donorId) {
+            throw new Exception('Unauthorized', 403);
+        }
+
+        if ($listing->status !== ListingStatusEnum::CLAIMED->value) {
+            throw new Exception('Listing is not in claimed status', 400);
+        }
+
+        $previousRecipientId = $listing->claimed_by;
+        $donorName = $listing->donor->name;
+
+        $listing->update([
+            'status' => ListingStatusEnum::ACTIVE->value,
+            'claimed_by' => null,
+            'confirmed_at' => null,
+            'listing_claim_id' => null,
+        ]);
+
+        $this->listingClaimRepository->resetAllClaimsForListing($id);
+
+        if ($previousRecipientId) {
+            SendNotificationJob::dispatch(
+                $previousRecipientId,
+                NotificationTypeEnum::LISTING_REOPENED->value,
+                'Listing reopened',
+                "{$donorName} has reopened '{$listing->title}' — your claim is back in the queue.",
+                [
+                    'listing_id' => $listing->id,
+                    'listing_title' => $listing->title,
+                ]
+            );
+        }
+
+        return $listing->fresh(['donor', 'tags']);
     }
 
     public function getClaimsForListing(string $listingId, string $donorId): Collection

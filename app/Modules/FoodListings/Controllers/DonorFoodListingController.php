@@ -56,6 +56,23 @@ class DonorFoodListingController extends Controller
         }
     }
 
+    public function reopen(string $id): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            $listing = $this->foodListingService->reopenListing($id, Auth::id());
+
+            DB::commit();
+
+            return $this->success('Listing reopened successfully', Response::HTTP_OK, new FoodListingResource($listing));
+        } catch (Exception $exception) {
+            DB::rollBack();
+
+            return $this->handleException($exception);
+        }
+    }
+
     public function show(string $id): JsonResponse
     {
         try {
