@@ -193,8 +193,36 @@ class FoodListingService
             throw new Exception('Unauthorized', 403);
         }
 
-        if ($listing->status !== ListingStatusEnum::ACTIVE->value) {
-            throw new Exception('Can only cancel active listings', 400);
+        $allowedStatuses = [ListingStatusEnum::ACTIVE->value, ListingStatusEnum::CLAIMED->value];
+
+        if (! in_array($listing->status, $allowedStatuses)) {
+            throw new Exception('Can only cancel active or claimed listings', 400);
+        }
+
+        if ($listing->status === ListingStatusEnum::CLAIMED->value) {
+            $previousRecipientId = $listing->claimed_by;
+
+            $this->listingClaimRepository->rejectAllClaimsForListing($id);
+
+            $this->foodListingRepository->update($id, [
+                'status' => ListingStatusEnum::CANCELLED->value,
+                'cancelled_by' => $donorId,
+            ]);
+
+            if ($previousRecipientId) {
+                SendNotificationJob::dispatch(
+                    $previousRecipientId,
+                    NotificationTypeEnum::LISTING_CANCELLED->value,
+                    'Listing cancelled',
+                    "'{$listing->title}' has been cancelled by the donor. Your pickup is no longer available.",
+                    [
+                        'listing_id' => $listing->id,
+                        'listing_title' => $listing->title,
+                    ]
+                );
+            }
+
+            return;
         }
 
         $this->foodListingRepository->update($id, [
