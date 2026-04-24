@@ -72,8 +72,9 @@ class DonorRelistTest extends TestCase
 
         $countBefore = FoodListing::count();
 
-        $this->postJson("/api/donor/listings/{$this->listing->id}/relist");
+        $response = $this->postJson("/api/donor/listings/{$this->listing->id}/relist");
 
+        $response->assertStatus(200);
         $this->assertSame($countBefore, FoodListing::count());
     }
 
@@ -81,7 +82,7 @@ class DonorRelistTest extends TestCase
     {
         Passport::actingAs($this->donor);
 
-        foreach (['active', 'expired', 'cancelled', 'completed'] as $status) {
+        foreach (['active', 'claimed', 'expired', 'cancelled', 'completed'] as $status) {
             $this->listing->update(['status' => $status]);
 
             $response = $this->postJson("/api/donor/listings/{$this->listing->id}/relist");

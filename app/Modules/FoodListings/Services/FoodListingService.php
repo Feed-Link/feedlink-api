@@ -10,6 +10,7 @@ use App\Modules\FoodListings\Repositories\FoodListingRepository;
 use App\Modules\Notifications\Jobs\SendNotificationJob;
 use Exception;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class FoodListingService
 {
@@ -29,7 +30,7 @@ class FoodListingService
 
     public function getRelistTemplate(string $id, string $donorId): array
     {
-        if (! preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id)) {
+        if (! Str::isUuid($id)) {
             throw new Exception('Listing not found', 404);
         }
 
