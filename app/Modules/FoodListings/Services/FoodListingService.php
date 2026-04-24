@@ -22,6 +22,11 @@ class FoodListingService
         return $this->foodListingRepository->fetchActiveByDonor($donorId, $params);
     }
 
+    public function getDonorStats(string $donorId): array
+    {
+        return $this->foodListingRepository->getDonorStats($donorId);
+    }
+
     public function getClaimsForListing(string $listingId, string $donorId): Collection
     {
         $listing = $this->foodListingRepository->fetchBy('id', $listingId);

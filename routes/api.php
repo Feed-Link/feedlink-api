@@ -42,6 +42,7 @@ Route::prefix('auth')
 Route::prefix('donor')
     ->middleware(['auth:api', 'role:donor'])
     ->group(function () {
+        Route::get('stats', [DonorFoodListingController::class, 'stats']);
         Route::get('listings', [DonorFoodListingController::class, 'index']);
         Route::post('listings', [DonorFoodListingController::class, 'store']);
         Route::get('listings/{id}', [DonorFoodListingController::class, 'show']);

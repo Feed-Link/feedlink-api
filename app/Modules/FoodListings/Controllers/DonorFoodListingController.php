@@ -34,6 +34,17 @@ class DonorFoodListingController extends Controller
         }
     }
 
+    public function stats(): JsonResponse
+    {
+        try {
+            $stats = $this->foodListingService->getDonorStats(Auth::id());
+
+            return $this->success('Stats retrieved', Response::HTTP_OK, $stats);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
     public function show(string $id): JsonResponse
     {
         try {
