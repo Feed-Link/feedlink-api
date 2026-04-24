@@ -2,8 +2,9 @@
 
 namespace App\Modules\FoodListings\Repositories;
 
-use App\Modules\FoodListings\Entities\FoodListing;
+use App\Modules\Core\Enums\ListingStatusEnum;
 use App\Modules\Core\Repositories\BaseRepository;
+use App\Modules\FoodListings\Entities\FoodListing;
 use Clickbar\Magellan\Data\Geometries\Point;
 
 class FoodListingRepository extends BaseRepository
@@ -53,5 +54,30 @@ class FoodListingRepository extends BaseRepository
             ->orderByDistance('location', $point);
 
         return $this->getFiltered($rows, $params, ['donor', 'tags']);
+    }
+
+    public function getDonorStats(string $donorId): array
+    {
+        $counts = $this->model::query()
+            ->where('donor_id', $donorId)
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $uniqueRecipients = $this->model::query()
+            ->where('donor_id', $donorId)
+            ->where('status', ListingStatusEnum::COMPLETED->value)
+            ->whereNotNull('claimed_by')
+            ->distinct('claimed_by')
+            ->count('claimed_by');
+
+        return [
+            'listings_completed' => (int) ($counts[ListingStatusEnum::COMPLETED->value] ?? 0),
+            'listings_active' => (int) ($counts[ListingStatusEnum::ACTIVE->value] ?? 0),
+            'listings_cancelled' => (int) ($counts[ListingStatusEnum::CANCELLED->value] ?? 0),
+            'listings_expired' => (int) ($counts[ListingStatusEnum::EXPIRED->value] ?? 0),
+            'unique_recipients_served' => $uniqueRecipients,
+        ];
     }
 }

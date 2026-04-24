@@ -14,6 +14,8 @@ enum NotificationTypeEnum: string
     case ACCEPTANCE_REJECTED = 'acceptance_rejected';
     case ACCEPTANCE_WITHDRAWN = 'acceptance_withdrawn';
     case REQUEST_FULFILLED = 'request_fulfilled';
+    case LISTING_REOPENED = 'listing_reopened';
+    case LISTING_CANCELLED = 'listing_cancelled';
 
     public static function getAllValues(): array
     {
