@@ -3,20 +3,23 @@
 namespace App\Modules\FoodListings\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\FoodListings\Resources\FoodListingResource;
+use App\Modules\FoodListings\Services\CompleteListingService;
 use App\Modules\FoodListings\Services\FoodListingService;
 use App\Modules\FoodListings\Services\ListingClaimService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Exception;
 use Symfony\Component\HttpFoundation\Response;
 
 class RecipientFoodListingController extends Controller
 {
     public function __construct(
         protected FoodListingService $foodListingService,
-        protected ListingClaimService $listingClaimService
+        protected ListingClaimService $listingClaimService,
+        protected CompleteListingService $completeListingService
     ) {}
 
     public function index(): JsonResponse
@@ -44,7 +47,7 @@ class RecipientFoodListingController extends Controller
             $listing = $this->foodListingService->foodListingRepository
                 ->fetchBy('id', $id, ['donor', 'tags']);
 
-            if (!$listing) {
+            if (! $listing) {
                 throw new Exception('Listing not found', Response::HTTP_NOT_FOUND);
             }
 
@@ -67,7 +70,7 @@ class RecipientFoodListingController extends Controller
             $listing = $this->foodListingService->foodListingRepository
                 ->fetchBy('id', $listingId);
 
-            if (!$listing) {
+            if (! $listing) {
                 throw new Exception('Listing not found', Response::HTTP_NOT_FOUND);
             }
 
@@ -90,6 +93,7 @@ class RecipientFoodListingController extends Controller
             );
         } catch (Exception $exception) {
             DB::rollBack();
+
             return $this->handleException($exception);
         }
     }
@@ -106,6 +110,7 @@ class RecipientFoodListingController extends Controller
             return $this->success('Claim cancelled successfully', Response::HTTP_OK);
         } catch (Exception $exception) {
             DB::rollBack();
+
             return $this->handleException($exception);
         }
     }
@@ -122,6 +127,21 @@ class RecipientFoodListingController extends Controller
             }
 
             return $this->success('Claims retrieved', Response::HTTP_OK, $data);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function complete(string $listingId): JsonResponse
+    {
+        try {
+            $listing = $this->completeListingService->complete($listingId, Auth::id());
+
+            return $this->success(
+                'Pickup marked as complete',
+                Response::HTTP_OK,
+                new FoodListingResource($listing)
+            );
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }
