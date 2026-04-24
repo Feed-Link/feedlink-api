@@ -6,15 +6,12 @@ use App\Models\User;
 use App\Modules\Notifications\Entities\Notification;
 use App\Modules\Notifications\Jobs\SendNotificationJob;
 use App\Modules\Notifications\Services\PushNotificationService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Passport\Passport;
 use Tests\TestCase;
 
 class NotificationTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_user_can_list_notifications(): void
     {
         $user = User::factory()->create();
