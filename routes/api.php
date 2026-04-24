@@ -48,6 +48,7 @@ Route::prefix('donor')
         Route::get('listings/{id}', [DonorFoodListingController::class, 'show']);
         Route::put('listings/{id}', [DonorFoodListingController::class, 'update']);
         Route::delete('listings/{id}', [DonorFoodListingController::class, 'destroy']);
+        Route::post('listings/{id}/relist', [DonorFoodListingController::class, 'relist']);
         Route::get('listings/{listingId}/claims', [DonorFoodListingController::class, 'claims']);
         Route::post('listings/{listingId}/claims/{claimId}/confirm', [DonorFoodListingController::class, 'confirmClaim']);
         Route::post('listings/{listingId}/claims/{claimId}/reject', [DonorFoodListingController::class, 'rejectClaim']);

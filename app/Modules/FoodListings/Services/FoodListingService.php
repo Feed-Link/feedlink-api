@@ -27,6 +27,35 @@ class FoodListingService
         return $this->foodListingRepository->getDonorStats($donorId);
     }
 
+    public function getRelistTemplate(string $id, string $donorId): array
+    {
+        if (! preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id)) {
+            throw new Exception('Listing not found', 404);
+        }
+
+        $listing = $this->foodListingRepository->fetchBy('id', $id, ['tags']);
+
+        if (! $listing) {
+            throw new Exception('Listing not found', 404);
+        }
+
+        if ($listing->donor_id !== $donorId) {
+            throw new Exception('Unauthorized', 403);
+        }
+
+        return [
+            'title' => $listing->title,
+            'description' => $listing->description,
+            'quantity' => $listing->quantity,
+            'tags' => $listing->tags->pluck('slug')->toArray(),
+            'photos' => $listing->photos ?? [],
+            'pickup_instructions' => $listing->pickup_instructions,
+            'address' => $listing->address,
+            'latitude' => (float) $listing->latitude,
+            'longitude' => (float) $listing->longitude,
+        ];
+    }
+
     public function getClaimsForListing(string $listingId, string $donorId): Collection
     {
         $listing = $this->foodListingRepository->fetchBy('id', $listingId);

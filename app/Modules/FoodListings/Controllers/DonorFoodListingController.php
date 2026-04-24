@@ -45,6 +45,17 @@ class DonorFoodListingController extends Controller
         }
     }
 
+    public function relist(string $id): JsonResponse
+    {
+        try {
+            $template = $this->foodListingService->getRelistTemplate($id, Auth::id());
+
+            return $this->success('Listing template retrieved', Response::HTTP_OK, $template);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
     public function show(string $id): JsonResponse
     {
         try {
