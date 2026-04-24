@@ -52,6 +52,9 @@ Validation failures (`422`) may return Laravel validation error format.
 | GET | `/donor/listings/{id}` | Yes | donor |
 | PUT | `/donor/listings/{id}` | Yes | donor |
 | DELETE | `/donor/listings/{id}` | Yes | donor |
+| GET | `/donor/stats` | Yes | donor |
+| POST | `/donor/listings/{id}/relist` | Yes | donor |
+| POST | `/donor/listings/{id}/reopen` | Yes | donor |
 | GET | `/donor/listings/{listingId}/claims` | Yes | donor |
 | POST | `/donor/listings/{listingId}/claims/{claimId}/confirm` | Yes | donor |
 | POST | `/donor/listings/{listingId}/claims/{claimId}/reject` | Yes | donor |
@@ -452,7 +455,63 @@ Cancel listing. Only allowed when `status = active`.
 ```
 
 **Error cases:**
-- `400` Can only cancel active listings
+- `400` Can only cancel active or claimed listings
+- `403` Not the owner of this listing
+- `404` Listing not found
+
+### GET `/donor/stats`
+Get lifetime donation impact totals for the authenticated donor.
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Stats retrieved",
+  "data": {
+    "listings_completed": 38,
+    "listings_active": 2,
+    "listings_cancelled": 5,
+    "listings_expired": 3,
+    "unique_recipients_served": 12
+  }
+}
+```
+
+### POST `/donor/listings/{id}/relist`
+Get a pre-filled template from an existing listing. Does **not** create a new listing — use the response to pre-fill the create form on the client, then submit normally via `POST /donor/listings`.
+
+Valid for any listing status (active, claimed, expired, completed, cancelled).
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Listing template retrieved",
+  "data": {
+    "title": "Leftover Dal Bhat",
+    "description": "Freshly cooked, enough for 15 people",
+    "quantity": "15 portions",
+    "tags": ["for_humans", "cooked"],
+    "photos": ["https://res.cloudinary.com/.../abc.jpg"],
+    "pickup_instructions": "Call before coming",
+    "address": "Thamel, Kathmandu",
+    "latitude": 27.7172,
+    "longitude": 85.3240
+  }
+}
+```
+
+**Error cases:**
+- `403` Not the owner of this listing
+- `404` Listing not found
+
+### POST `/donor/listings/{id}/reopen`
+Re-open a `claimed` listing when the confirmed recipient cannot make the pickup. Restores all claims (confirmed and previously auto-rejected) back to `pending` so the donor can re-pick from the original pool. Sends a `listing_reopened` push notification to the previously confirmed recipient.
+
+**Response (200):** Full listing shape (same as `GET /donor/listings` item), `status: "active"`.
+
+**Error cases:**
+- `400` Listing is not in claimed status
 - `403` Not the owner of this listing
 - `404` Listing not found
 
@@ -936,6 +995,8 @@ Mark all of the authenticated user's notifications as read.
 | `acceptance_rejected` | donor | recipient rejects donor's acceptance offer |
 | `acceptance_withdrawn` | recipient | donor withdraws their pending acceptance offer |
 | `request_fulfilled` | donor | recipient marks food request as fulfilled |
+| `listing_reopened` | confirmed recipient | donor calls `POST /donor/listings/{id}/reopen` on a claimed listing |
+| `listing_cancelled` | confirmed recipient | donor calls `DELETE /donor/listings/{id}` on a claimed listing |
 
 ---
 
