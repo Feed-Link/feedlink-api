@@ -4,7 +4,7 @@ namespace Tests\Feature\Notifications;
 
 use App\Models\User;
 use App\Modules\Notifications\Entities\Notification;
-use App\Modules\Notifications\Jobs\SendClaimNotificationJob;
+use App\Modules\Notifications\Jobs\SendNotificationJob;
 use App\Modules\Notifications\Services\PushNotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -90,13 +90,16 @@ class NotificationTest extends TestCase
             ->assertJsonPath('data.meta.total', 0);
     }
 
-    public function test_send_claim_notification_job_is_dispatched(): void
+    public function test_send_notification_job_is_dispatched(): void
     {
         Queue::fake();
 
-        SendClaimNotificationJob::dispatch(new \stdClass);
+        SendNotificationJob::dispatch('some-user-id', 'claim_received', 'New Claim', 'You have a new claim.');
 
-        Queue::assertPushed(SendClaimNotificationJob::class);
+        Queue::assertPushed(SendNotificationJob::class, function (SendNotificationJob $job) {
+            return $job->userId === 'some-user-id'
+                && $job->type === 'claim_received';
+        });
     }
 
     public function test_job_creates_in_app_notification_and_skips_push_without_token(): void
@@ -105,21 +108,14 @@ class NotificationTest extends TestCase
         $pushMock->shouldNotReceive('send');
 
         $donor = User::factory()->create(['fcm_token' => null]);
-        $recipient = User::factory()->create(['name' => 'Asha Shelter']);
 
-        $listing = (object) [
-            'id' => 'listing-uuid',
-            'title' => 'Dal Bhat',
-            'donor' => $donor,
-        ];
-
-        $claim = (object) [
-            'id' => 'claim-uuid',
-            'listing' => $listing,
-            'recipient' => $recipient,
-        ];
-
-        dispatch(new SendClaimNotificationJob($claim));
+        dispatch(new SendNotificationJob(
+            userId: $donor->id,
+            type: 'claim_received',
+            title: 'New claim on your listing',
+            body: 'Asha Shelter has claimed your listing.',
+            data: ['listing_id' => 'listing-uuid', 'claim_id' => 'claim-uuid'],
+        ));
 
         $this->assertDatabaseHas('notifications', [
             'user_id' => $donor->id,
@@ -134,21 +130,14 @@ class NotificationTest extends TestCase
         $pushMock->shouldReceive('send')->once()->andThrow(new \Exception('FCM error'));
 
         $donor = User::factory()->create(['fcm_token' => 'some-token']);
-        $recipient = User::factory()->create(['name' => 'NGO Helper']);
 
-        $listing = (object) [
-            'id' => 'listing-uuid-2',
-            'title' => 'Bread Rolls',
-            'donor' => $donor,
-        ];
-
-        $claim = (object) [
-            'id' => 'claim-uuid-2',
-            'listing' => $listing,
-            'recipient' => $recipient,
-        ];
-
-        dispatch(new SendClaimNotificationJob($claim));
+        dispatch(new SendNotificationJob(
+            userId: $donor->id,
+            type: 'claim_received',
+            title: 'New claim on your listing',
+            body: 'NGO Helper has claimed your listing.',
+            data: ['listing_id' => 'listing-uuid-2', 'claim_id' => 'claim-uuid-2'],
+        ));
 
         $this->assertDatabaseHas('notifications', [
             'user_id' => $donor->id,
