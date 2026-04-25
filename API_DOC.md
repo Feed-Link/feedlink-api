@@ -1074,6 +1074,7 @@ Mark all of the authenticated user's notifications as read.
 | `claim_confirmed` | recipient | donor confirms recipient's claim |
 | `claim_rejected` | recipient | donor rejects claim, or claim auto-rejected when another is confirmed |
 | `pickup_completed` | donor | recipient marks pickup as complete |
+| `listing_expired` | donor | scheduler expires an `active` listing that passed `expires_at` with no claims |
 | `listing_expired_uncollected` | donor | scheduler expires a `claimed` listing that passed `pickup_before` without completion |
 | `request_accepted` | recipient | donor submits an acceptance offer on recipient's food request |
 | `acceptance_confirmed` | donor | recipient confirms donor's acceptance offer |

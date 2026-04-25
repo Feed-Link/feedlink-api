@@ -17,10 +17,27 @@ class ExpireFoodListings extends Command
     public function handle(): void
     {
         // Active listings past expires_at → no one claimed in time
-        $active = FoodListing::query()
+        $activeListings = FoodListing::query()
             ->where('expires_at', '<=', now())
             ->where('status', ListingStatusEnum::ACTIVE->value)
-            ->update(['status' => ListingStatusEnum::EXPIRED->value]);
+            ->get(['id', 'donor_id', 'title']);
+
+        if ($activeListings->isNotEmpty()) {
+            FoodListing::whereIn('id', $activeListings->pluck('id'))
+                ->update(['status' => ListingStatusEnum::EXPIRED->value]);
+
+            foreach ($activeListings as $listing) {
+                SendNotificationJob::dispatch(
+                    $listing->donor_id,
+                    NotificationTypeEnum::LISTING_EXPIRED->value,
+                    'Listing expired',
+                    "Your listing \"{$listing->title}\" has expired with no claims.",
+                    ['listing_id' => $listing->id, 'listing_title' => $listing->title]
+                );
+            }
+        }
+
+        $active = $activeListings->count();
 
         // Claimed listings past pickup_before → recipient never picked up.
         // Fetch first so we can notify each donor after the bulk update.
