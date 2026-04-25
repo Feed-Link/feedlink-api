@@ -10,9 +10,9 @@ Artisan::command('inspire', function () {
 
 // Scheduled commands
 Schedule::command('feedlink:expire-listings')
-    ->everyFiveMinutes()
+    ->everyThirtySeconds()
     ->withoutOverlapping();
 
 Schedule::command('feedlink:expire-requests')
-    ->everyFiveMinutes()
+    ->everyThirtySeconds()
     ->withoutOverlapping();
