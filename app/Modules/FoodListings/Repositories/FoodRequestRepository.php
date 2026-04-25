@@ -4,6 +4,9 @@ namespace App\Modules\FoodListings\Repositories;
 
 use App\Modules\Core\Repositories\BaseRepository;
 use App\Modules\FoodListings\Entities\FoodRequest;
+use Clickbar\Magellan\Data\Geometries\Point;
+use Clickbar\Magellan\Database\PostgisFunctions\ST;
+use Illuminate\Database\Eloquent\Collection;
 
 class FoodRequestRepository extends BaseRepository
 {
@@ -11,6 +14,26 @@ class FoodRequestRepository extends BaseRepository
     {
         $this->model = $foodRequest;
         parent::__construct();
+    }
+
+    public function fetchNearby(float $lat, float $lng, float $radiusKm, string $status = 'open', ?string $foodType = null): Collection
+    {
+        $point = Point::makeGeodetic($lat, $lng);
+        $radiusMeters = $radiusKm * 1000;
+
+        $query = $this->model::query()
+            ->select('food_requests.*')
+            ->addSelect(ST::distance($point, 'location')->as('distance_meters'))
+            ->where('status', $status)
+            ->where(ST::distance($point, 'location'), '<=', $radiusMeters)
+            ->orderBy(ST::distance($point, 'location'))
+            ->with(['recipient', 'tags']);
+
+        if ($foodType) {
+            $query->where('food_type', $foodType);
+        }
+
+        return $query->get();
     }
 
     public function fetchForRecipient(string $recipientId, array $params = []): object

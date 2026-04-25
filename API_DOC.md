@@ -573,6 +573,90 @@ Reject a pending claim.
 - `403` Not the owner of this listing
 - `404` Listing not found / Claim not found
 
+### GET `/donor/requests`
+Browse open food requests near the donor's current location. Returns `open` requests ordered by distance ascending.
+
+**Query params:**
+- `lat` (required, numeric, -90..90)
+- `lng` (required, numeric, -180..180)
+- `radius` (optional, numeric, 0.1..100, default 5 km)
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Requests retrieved",
+  "data": [
+    {
+      "id": "request-uuid",
+      "recipient_id": "recipient-uuid",
+      "title": "Need food",
+      "description": "For shelter",
+      "quantity_needed": "10 kg",
+      "food_type": "human",
+      "needed_by": "2026-04-06T18:00:00.000000Z",
+      "status": "open",
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "location": { "lat": 27.7172, "lng": 85.324 },
+      "address": "Kathmandu",
+      "distance_km": 0.15,
+      "recipient": {
+        "id": "recipient-uuid",
+        "name": "Asha Shelter",
+        "is_verified": true
+      },
+      "created_at": "2026-04-05T14:00:00.000000Z"
+    }
+  ]
+}
+```
+
+**Error cases:**
+- `422` Missing or invalid `lat`/`lng`
+
+### POST `/donor/requests/{requestId}/accept`
+Submit an acceptance offer on an open food request.
+
+**Request body:**
+```json
+{ "note": "I can deliver tomorrow morning" }
+```
+
+**Validation:**
+- `note`: nullable|string|max:500
+
+**Response (201):**
+```json
+{
+  "status_code": 201,
+  "message": "Acceptance submitted successfully",
+  "data": {
+    "id": "acceptance-uuid",
+    "food_request_id": "request-uuid",
+    "donor_id": "donor-uuid",
+    "status": "pending",
+    "note": "I can deliver tomorrow morning",
+    "created_at": "2026-04-05T14:00:00.000000Z"
+  }
+}
+```
+
+**Error cases:**
+- `400` Request is not open / Donor already submitted an acceptance
+- `404` Request not found
+
+### DELETE `/donor/requests/{requestId}/accept`
+Withdraw the donor's pending acceptance offer on a food request.
+
+**Response (200):**
+```json
+{ "status_code": 200, "message": "Acceptance withdrawn successfully", "data": null }
+```
+
+**Error cases:**
+- `404` No pending acceptance found for this request
+
 ---
 
 ## 5. Recipient Endpoints

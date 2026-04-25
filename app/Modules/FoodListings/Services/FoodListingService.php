@@ -320,7 +320,7 @@ class FoodListingService
         }
 
         if ($claim->status !== ClaimStatusEnum::PENDING->value) {
-            throw new Exception('Claim cannot be rejected', 400);
+            throw new Exception('Claim is not pending', 400);
         }
 
         $claim->update(['status' => ClaimStatusEnum::REJECTED->value]);
@@ -345,6 +345,7 @@ class FoodListingService
             'title' => $listing->title,
             'description' => $listing->description,
             'quantity' => $listing->quantity,
+            'food_type' => $listing->food_type,
             'tags' => $listing->relationLoaded('tags') ? $listing->tags->map(fn ($tag) => [
                 'slug' => $tag->slug,
                 'name' => $tag->name,
@@ -367,6 +368,7 @@ class FoodListingService
                 'id' => $listing->donor->id,
                 'name' => $listing->donor->name,
                 'is_verified' => (bool) ($listing->donor->is_verified ?? false),
+                'contact' => $listing->donor->contact,
             ] : null,
             'confirmed_at' => $listing->confirmed_at?->toISOString(),
             'created_at' => $listing->created_at?->toISOString(),

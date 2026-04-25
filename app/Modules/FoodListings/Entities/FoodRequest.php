@@ -7,10 +7,13 @@ use App\Modules\Core\Entities\BaseModel;
 use App\Modules\Core\Entities\Tag;
 use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FoodRequest extends BaseModel
 {
+    use HasFactory;
+
     protected $table = 'food_requests';
 
     protected $fillable = [
@@ -18,6 +21,7 @@ class FoodRequest extends BaseModel
         'title',
         'description',
         'quantity_needed',
+        'food_type',
         'needed_by',
         'status',
         'latitude',
@@ -51,7 +55,7 @@ class FoodRequest extends BaseModel
         return Attribute::make(
             set: fn (mixed $value) => is_array($value)
                 && isset($value['lat'], $value['long'])
-                ? Point::make($value['long'], $value['lat'])
+                ? Point::makeGeodetic($value['lat'], $value['long'])
                 : $value
         );
     }

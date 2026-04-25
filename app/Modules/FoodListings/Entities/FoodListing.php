@@ -26,6 +26,7 @@ class FoodListing extends BaseModel
         'title',
         'description',
         'quantity',
+        'food_type',
         'photos',
         'expires_at',
         'pickup_before',
@@ -61,7 +62,7 @@ class FoodListing extends BaseModel
         return Attribute::make(
             set: fn (mixed $value) => is_array($value)
                 && isset($value['lat'], $value['long'])
-                ? Point::make($value['long'], $value['lat'])
+                ? Point::makeGeodetic($value['lat'], $value['long'])
                 : $value
         );
     }

@@ -14,6 +14,7 @@ class FoodRequestResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'quantity_needed' => $this->quantity_needed,
+            'food_type' => $this->food_type,
             'tags' => $this->when(
                 $this->relationLoaded('tags'),
                 fn () => $this->tags->map(fn ($tag) => [
