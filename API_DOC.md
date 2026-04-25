@@ -52,15 +52,30 @@ Validation failures (`422`) may return Laravel validation error format.
 | GET | `/donor/listings/{id}` | Yes | donor |
 | PUT | `/donor/listings/{id}` | Yes | donor |
 | DELETE | `/donor/listings/{id}` | Yes | donor |
+| GET | `/donor/stats` | Yes | donor |
+| POST | `/donor/listings/{id}/relist` | Yes | donor |
+| POST | `/donor/listings/{id}/reopen` | Yes | donor |
 | GET | `/donor/listings/{listingId}/claims` | Yes | donor |
 | POST | `/donor/listings/{listingId}/claims/{claimId}/confirm` | Yes | donor |
 | POST | `/donor/listings/{listingId}/claims/{claimId}/reject` | Yes | donor |
+| GET | `/donor/requests` | Yes | donor |
+| POST | `/donor/requests/{requestId}/accept` | Yes | donor |
+| DELETE | `/donor/requests/{requestId}/accept` | Yes | donor |
 | GET | `/recipient/listings` | Yes | recipient |
 | GET | `/recipient/listings/{id}` | Yes | recipient |
 | POST | `/recipient/listings/{listingId}/claim` | Yes | recipient |
 | DELETE | `/recipient/listings/{listingId}/claim` | Yes | recipient |
 | POST | `/recipient/listings/{listingId}/complete` | Yes | recipient |
 | GET | `/recipient/claims` | Yes | recipient |
+| GET | `/recipient/requests` | Yes | recipient |
+| POST | `/recipient/requests` | Yes | recipient |
+| GET | `/recipient/requests/{id}` | Yes | recipient |
+| PUT | `/recipient/requests/{id}` | Yes | recipient |
+| DELETE | `/recipient/requests/{id}` | Yes | recipient |
+| GET | `/recipient/requests/{requestId}/acceptances` | Yes | recipient |
+| POST | `/recipient/requests/{requestId}/acceptances/{acceptanceId}/confirm` | Yes | recipient |
+| POST | `/recipient/requests/{requestId}/acceptances/{acceptanceId}/reject` | Yes | recipient |
+| POST | `/recipient/requests/{requestId}/complete` | Yes | recipient |
 | GET | `/listings/nearby` | Yes | Any |
 | GET | `/requests/nearby` | Yes | Any |
 | PUT | `/user/location` | Yes | Any |
@@ -428,7 +443,7 @@ Update listing.
 Actual `data` includes full listing shape.
 
 ### DELETE `/donor/listings/{id}`
-Cancel listing. Only allowed when `status = active`.
+Cancel listing. Allowed when `status` is `active` or `claimed`. Cancelling a claimed listing notifies the confirmed recipient.
 
 **Response (200):**
 ```json
@@ -440,7 +455,63 @@ Cancel listing. Only allowed when `status = active`.
 ```
 
 **Error cases:**
-- `400` Can only cancel active listings
+- `400` Can only cancel active or claimed listings
+- `403` Not the owner of this listing
+- `404` Listing not found
+
+### GET `/donor/stats`
+Get lifetime donation impact totals for the authenticated donor.
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Stats retrieved",
+  "data": {
+    "listings_completed": 38,
+    "listings_active": 2,
+    "listings_cancelled": 5,
+    "listings_expired": 3,
+    "unique_recipients_served": 12
+  }
+}
+```
+
+### POST `/donor/listings/{id}/relist`
+Get a pre-filled template from an existing listing. Does **not** create a new listing — use the response to pre-fill the create form on the client, then submit normally via `POST /donor/listings`.
+
+Valid for any listing status (active, claimed, expired, completed, cancelled).
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Listing template retrieved",
+  "data": {
+    "title": "Leftover Dal Bhat",
+    "description": "Freshly cooked, enough for 15 people",
+    "quantity": "15 portions",
+    "tags": ["for_humans", "cooked"],
+    "photos": ["https://res.cloudinary.com/.../abc.jpg"],
+    "pickup_instructions": "Call before coming",
+    "address": "Thamel, Kathmandu",
+    "latitude": 27.7172,
+    "longitude": 85.3240
+  }
+}
+```
+
+**Error cases:**
+- `403` Not the owner of this listing
+- `404` Listing not found
+
+### POST `/donor/listings/{id}/reopen`
+Re-open a `claimed` listing when the confirmed recipient cannot make the pickup. Restores all claims (confirmed and previously auto-rejected) back to `pending` so the donor can re-pick from the original pool. Sends a `listing_reopened` push notification to the previously confirmed recipient.
+
+**Response (200):** Full listing shape (same as `GET /donor/listings` item), `status: "active"`.
+
+**Error cases:**
+- `400` Listing is not in claimed status
 - `403` Not the owner of this listing
 - `404` Listing not found
 
@@ -501,6 +572,91 @@ Reject a pending claim.
 - `400` Claim is not pending
 - `403` Not the owner of this listing
 - `404` Listing not found / Claim not found
+
+### GET `/donor/requests`
+Browse open food requests near the donor's current location. Returns `open` requests ordered by distance ascending.
+
+**Query params:**
+- `lat` (optional, numeric, -90..90) — falls back to the donor's stored profile location if omitted
+- `lng` (optional, numeric, -180..180) — falls back to the donor's stored profile location if omitted
+- `radius` (optional, numeric, 0.1..100, default 5 km)
+- `status` (optional, one of `open`, `accepted`, `fulfilled`, `expired`, `cancelled`, default `open`)
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Requests retrieved",
+  "data": [
+    {
+      "id": "request-uuid",
+      "recipient_id": "recipient-uuid",
+      "title": "Need food",
+      "description": "For shelter",
+      "quantity_needed": "10 kg",
+      "food_type": "human",
+      "needed_by": "2026-04-06T18:00:00.000000Z",
+      "status": "open",
+      "latitude": 27.7172,
+      "longitude": 85.324,
+      "location": { "lat": 27.7172, "lng": 85.324 },
+      "address": "Kathmandu",
+      "distance_km": 0.15,
+      "recipient": {
+        "id": "recipient-uuid",
+        "name": "Asha Shelter",
+        "is_verified": true
+      },
+      "created_at": "2026-04-05T14:00:00.000000Z"
+    }
+  ]
+}
+```
+
+**Error cases:**
+- `422` No location available (lat/lng not provided and no profile location stored)
+
+### POST `/donor/requests/{requestId}/accept`
+Submit an acceptance offer on an open food request.
+
+**Request body:**
+```json
+{ "note": "I can deliver tomorrow morning" }
+```
+
+**Validation:**
+- `note`: nullable|string|max:500
+
+**Response (201):**
+```json
+{
+  "status_code": 201,
+  "message": "Acceptance submitted successfully",
+  "data": {
+    "id": "acceptance-uuid",
+    "food_request_id": "request-uuid",
+    "donor_id": "donor-uuid",
+    "status": "pending",
+    "note": "I can deliver tomorrow morning",
+    "created_at": "2026-04-05T14:00:00.000000Z"
+  }
+}
+```
+
+**Error cases:**
+- `400` Request is not open / Donor already submitted an acceptance
+- `404` Request not found
+
+### DELETE `/donor/requests/{requestId}/accept`
+Withdraw the donor's pending acceptance offer on a food request.
+
+**Response (200):**
+```json
+{ "status_code": 200, "message": "Acceptance withdrawn successfully", "data": null }
+```
+
+**Error cases:**
+- `404` No pending acceptance found for this request
 
 ---
 
@@ -911,10 +1067,21 @@ Mark all of the authenticated user's notifications as read.
 - `rejected` — donor rejected, or auto-rejected when another claim was confirmed
 
 ### `notification type` values (`NotificationTypeEnum`)
-- `claim_received` — donor receives when a recipient claims their listing
-- `claim_confirmed` — recipient receives when donor confirms their claim
-- `claim_rejected` — recipient receives when donor rejects their claim (manual or auto-reject)
-- `pickup_completed` — donor receives when confirmed recipient marks pickup done
+
+| Type | Sent to | Trigger |
+|---|---|---|
+| `claim_received` | donor | recipient submits a claim on donor's listing |
+| `claim_confirmed` | recipient | donor confirms recipient's claim |
+| `claim_rejected` | recipient | donor rejects claim, or claim auto-rejected when another is confirmed |
+| `pickup_completed` | donor | recipient marks pickup as complete |
+| `listing_expired_uncollected` | donor | scheduler expires a `claimed` listing that passed `pickup_before` without completion |
+| `request_accepted` | recipient | donor submits an acceptance offer on recipient's food request |
+| `acceptance_confirmed` | donor | recipient confirms donor's acceptance offer |
+| `acceptance_rejected` | donor | recipient rejects donor's acceptance offer |
+| `acceptance_withdrawn` | recipient | donor withdraws their pending acceptance offer |
+| `request_fulfilled` | donor | recipient marks food request as fulfilled |
+| `listing_reopened` | confirmed recipient | donor calls `POST /donor/listings/{id}/reopen` on a claimed listing |
+| `listing_cancelled` | confirmed recipient | donor calls `DELETE /donor/listings/{id}` on a claimed listing |
 
 ---
 

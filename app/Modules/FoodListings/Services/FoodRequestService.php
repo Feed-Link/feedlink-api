@@ -4,10 +4,15 @@ namespace App\Modules\FoodListings\Services;
 
 use App\Modules\Core\Entities\Tag;
 use App\Modules\FoodListings\Entities\FoodRequest;
+use App\Modules\FoodListings\Repositories\FoodRequestRepository;
 use Exception;
 
 class FoodRequestService
 {
+    public function __construct(
+        public FoodRequestRepository $foodRequestRepository
+    ) {}
+
     public function createRequest(array $data, string $recipientId): object
     {
         $tagSlugs = $data['tags'] ?? [];
@@ -19,22 +24,21 @@ class FoodRequestService
             'long' => $data['longitude'],
         ];
         $data['status'] = 'open';
+        $data['expires_at'] = $data['needed_by'];
 
-        $request = new FoodRequest($data);
-        $request->save();
+        $request = $this->foodRequestRepository->store($data);
 
-        // Sync tags
         $tagIds = Tag::whereIn('slug', $tagSlugs)->pluck('id')->toArray();
         $request->tags()->sync($tagIds);
 
-        return $request;
+        return $request->fresh(['tags']);
     }
 
     public function updateRequest(string $id, array $data, string $recipientId): object
     {
-        $request = FoodRequest::find($id);
+        $request = $this->foodRequestRepository->fetchBy('id', $id);
 
-        if (!$request) {
+        if (! $request) {
             throw new Exception('Request not found', 404);
         }
 
@@ -56,15 +60,52 @@ class FoodRequestService
             ];
         }
 
-        $request->update($data);
+        $this->foodRequestRepository->update($id, $data);
 
-        // Sync tags if provided
+        $request = $this->foodRequestRepository->fetchBy('id', $id, ['tags']);
+
         if ($tagSlugs !== null) {
             $tagIds = Tag::whereIn('slug', $tagSlugs)->pluck('id')->toArray();
             $request->tags()->sync($tagIds);
+            $request = $this->foodRequestRepository->fetchBy('id', $id, ['tags']);
         }
 
-        return $request->fresh();
+        return $request;
+    }
+
+    public function cancelRequest(string $id, string $recipientId): void
+    {
+        $request = $this->foodRequestRepository->fetchBy('id', $id);
+
+        if (! $request) {
+            throw new Exception('Request not found', 404);
+        }
+
+        if ($request->recipient_id !== $recipientId) {
+            throw new Exception('Unauthorized', 403);
+        }
+
+        if (! in_array($request->status, ['open', 'accepted'])) {
+            throw new Exception('Cannot cancel a fulfilled or expired request', 400);
+        }
+
+        $this->foodRequestRepository->update($id, ['status' => 'cancelled']);
+    }
+
+    public function getRequestsForRecipient(string $recipientId, array $params = []): object
+    {
+        return $this->foodRequestRepository->fetchForRecipient($recipientId, $params);
+    }
+
+    public function getRequestById(string $id, array $relations = []): FoodRequest
+    {
+        $request = $this->foodRequestRepository->fetchBy('id', $id, $relations);
+
+        if (! $request) {
+            throw new Exception('Request not found', 404);
+        }
+
+        return $request;
     }
 
     public function formatRequestResponse(object $request, ?float $distanceKm = null): array
@@ -74,7 +115,7 @@ class FoodRequestService
             'title' => $request->title,
             'description' => $request->description,
             'quantity_needed' => $request->quantity_needed,
-            'tags' => $request->relationLoaded('tags') ? $request->tags->map(fn($tag) => [
+            'tags' => $request->relationLoaded('tags') ? $request->tags->map(fn ($tag) => [
                 'slug' => $tag->slug,
                 'name' => $tag->name,
                 'category' => $tag->category,

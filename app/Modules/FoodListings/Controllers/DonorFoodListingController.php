@@ -34,6 +34,45 @@ class DonorFoodListingController extends Controller
         }
     }
 
+    public function stats(): JsonResponse
+    {
+        try {
+            $stats = $this->foodListingService->getDonorStats(Auth::id());
+
+            return $this->success('Stats retrieved', Response::HTTP_OK, $stats);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function relist(string $id): JsonResponse
+    {
+        try {
+            $template = $this->foodListingService->getRelistTemplate($id, Auth::id());
+
+            return $this->success('Listing template retrieved', Response::HTTP_OK, $template);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function reopen(string $id): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            $listing = $this->foodListingService->reopenListing($id, Auth::id());
+
+            DB::commit();
+
+            return $this->success('Listing reopened successfully', Response::HTTP_OK, new FoodListingResource($listing));
+        } catch (Exception $exception) {
+            DB::rollBack();
+
+            return $this->handleException($exception);
+        }
+    }
+
     public function show(string $id): JsonResponse
     {
         try {

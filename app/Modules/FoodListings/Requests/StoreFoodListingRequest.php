@@ -2,8 +2,8 @@
 
 namespace App\Modules\FoodListings\Requests;
 
-use App\Modules\Core\Requests\BaseRequest;
 use App\Modules\Core\Enums\FoodTagEnum;
+use App\Modules\Core\Requests\BaseRequest;
 
 class StoreFoodListingRequest extends BaseRequest
 {
@@ -19,7 +19,7 @@ class StoreFoodListingRequest extends BaseRequest
             'description' => 'nullable|string',
             'quantity' => 'required|string|max:100',
             'tags' => 'required|array|min:1',
-            'tags.*' => 'required|in:' . implode(',', FoodTagEnum::getAllValues()),
+            'tags.*' => 'required|in:'.implode(',', FoodTagEnum::getAllValues()),
             'photos' => 'nullable|array',
             'photos.*' => 'string',
             'expires_at' => 'required|date|after:now',

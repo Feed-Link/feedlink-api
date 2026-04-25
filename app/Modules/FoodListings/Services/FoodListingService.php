@@ -7,19 +7,104 @@ use App\Modules\Core\Enums\ClaimStatusEnum;
 use App\Modules\Core\Enums\ListingStatusEnum;
 use App\Modules\Core\Enums\NotificationTypeEnum;
 use App\Modules\FoodListings\Repositories\FoodListingRepository;
+use App\Modules\FoodListings\Repositories\ListingClaimRepository;
 use App\Modules\Notifications\Jobs\SendNotificationJob;
 use Exception;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class FoodListingService
 {
     public function __construct(
-        public FoodListingRepository $foodListingRepository
+        public FoodListingRepository $foodListingRepository,
+        public ListingClaimRepository $listingClaimRepository,
     ) {}
 
     public function getListingsForDonor(string $donorId, array $params = []): object
     {
         return $this->foodListingRepository->fetchActiveByDonor($donorId, $params);
+    }
+
+    public function getDonorStats(string $donorId): array
+    {
+        return $this->foodListingRepository->getDonorStats($donorId);
+    }
+
+    public function getRelistTemplate(string $id, string $donorId): array
+    {
+        if (! Str::isUuid($id)) {
+            throw new Exception('Listing not found', 404);
+        }
+
+        $listing = $this->foodListingRepository->fetchBy('id', $id, ['tags']);
+
+        if (! $listing) {
+            throw new Exception('Listing not found', 404);
+        }
+
+        if ($listing->donor_id !== $donorId) {
+            throw new Exception('Unauthorized', 403);
+        }
+
+        return [
+            'title' => $listing->title,
+            'description' => $listing->description,
+            'quantity' => $listing->quantity,
+            'tags' => $listing->tags->pluck('slug')->toArray(),
+            'photos' => $listing->photos ?? [],
+            'pickup_instructions' => $listing->pickup_instructions,
+            'address' => $listing->address,
+            'latitude' => (float) $listing->latitude,
+            'longitude' => (float) $listing->longitude,
+        ];
+    }
+
+    public function reopenListing(string $id, string $donorId): object
+    {
+        if (! Str::isUuid($id)) {
+            throw new Exception('Listing not found', 404);
+        }
+
+        $listing = $this->foodListingRepository->fetchBy('id', $id, ['donor']);
+
+        if (! $listing) {
+            throw new Exception('Listing not found', 404);
+        }
+
+        if ($listing->donor_id !== $donorId) {
+            throw new Exception('Unauthorized', 403);
+        }
+
+        if ($listing->status !== ListingStatusEnum::CLAIMED->value) {
+            throw new Exception('Listing is not in claimed status', 400);
+        }
+
+        $previousRecipientId = $listing->claimed_by;
+        $donorName = $listing->donor->name;
+
+        $listing->update([
+            'status' => ListingStatusEnum::ACTIVE->value,
+            'claimed_by' => null,
+            'confirmed_at' => null,
+            'listing_claim_id' => null,
+        ]);
+
+        $this->listingClaimRepository->resetAllClaimsForListing($id);
+
+        if ($previousRecipientId) {
+            SendNotificationJob::dispatch(
+                $previousRecipientId,
+                NotificationTypeEnum::LISTING_REOPENED->value,
+                'Listing reopened',
+                "{$donorName} has reopened '{$listing->title}' — your claim is back in the queue.",
+                [
+                    'listing_id' => $listing->id,
+                    'listing_title' => $listing->title,
+                ]
+            );
+        }
+
+        return $listing->fresh(['donor', 'tags']);
     }
 
     public function getClaimsForListing(string $listingId, string $donorId): Collection
@@ -108,8 +193,36 @@ class FoodListingService
             throw new Exception('Unauthorized', 403);
         }
 
-        if ($listing->status !== ListingStatusEnum::ACTIVE->value) {
-            throw new Exception('Can only cancel active listings', 400);
+        $allowedStatuses = [ListingStatusEnum::ACTIVE->value, ListingStatusEnum::CLAIMED->value];
+
+        if (! in_array($listing->status, $allowedStatuses)) {
+            throw new Exception('Can only cancel active or claimed listings', 400);
+        }
+
+        if ($listing->status === ListingStatusEnum::CLAIMED->value) {
+            $previousRecipientId = $listing->claimed_by;
+
+            $this->listingClaimRepository->rejectAllClaimsForListing($id);
+
+            $this->foodListingRepository->update($id, [
+                'status' => ListingStatusEnum::CANCELLED->value,
+                'cancelled_by' => $donorId,
+            ]);
+
+            if ($previousRecipientId) {
+                SendNotificationJob::dispatch(
+                    $previousRecipientId,
+                    NotificationTypeEnum::LISTING_CANCELLED->value,
+                    'Listing cancelled',
+                    "'{$listing->title}' has been cancelled by the donor. Your pickup is no longer available.",
+                    [
+                        'listing_id' => $listing->id,
+                        'listing_title' => $listing->title,
+                    ]
+                );
+            }
+
+            return;
         }
 
         $this->foodListingRepository->update($id, [
@@ -207,7 +320,7 @@ class FoodListingService
         }
 
         if ($claim->status !== ClaimStatusEnum::PENDING->value) {
-            throw new Exception('Claim cannot be rejected', 400);
+            throw new Exception('Claim is not pending', 400);
         }
 
         $claim->update(['status' => ClaimStatusEnum::REJECTED->value]);
@@ -254,6 +367,7 @@ class FoodListingService
                 'id' => $listing->donor->id,
                 'name' => $listing->donor->name,
                 'is_verified' => (bool) ($listing->donor->is_verified ?? false),
+                'contact' => $listing->donor->contact,
             ] : null,
             'confirmed_at' => $listing->confirmed_at?->toISOString(),
             'created_at' => $listing->created_at?->toISOString(),

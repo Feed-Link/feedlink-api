@@ -135,7 +135,11 @@ class RecipientFoodListingController extends Controller
     public function complete(string $listingId): JsonResponse
     {
         try {
+            DB::beginTransaction();
+
             $listing = $this->completeListingService->complete($listingId, Auth::id());
+
+            DB::commit();
 
             return $this->success(
                 'Pickup marked as complete',
@@ -143,6 +147,8 @@ class RecipientFoodListingController extends Controller
                 new FoodListingResource($listing)
             );
         } catch (Exception $exception) {
+            DB::rollBack();
+
             return $this->handleException($exception);
         }
     }

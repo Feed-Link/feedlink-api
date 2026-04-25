@@ -33,6 +33,15 @@ The following auth routes are **already implemented** and must not be re-created
 
 ---
 
+## 2.5 Preferred Tools for AI Agents
+
+When working in this codebase, agents should use these tools:
+
+- **Code finding & reading:** Use the `serena` MCP tools (`mcp__plugin_serena_serena__find_symbol`, `mcp__plugin_serena_serena__find_file`, `mcp__plugin_serena_serena__read_file`, etc.) for navigating and reading source files — faster and more precise than grep/glob for symbol-level lookups.
+- **Library/framework docs:** Use the `context7` MCP tools (`mcp__plugin_context7_context7__resolve-library-id`, `mcp__plugin_context7_context7__query-docs`) when looking up Laravel, Passport, Spatie Permission, or any package API — always prefer current docs over training-data assumptions.
+
+---
+
 ## 3. Role Architecture (Spatie)
 
 During **registration**, the user selects one of two roles. No role switching is allowed after signup.

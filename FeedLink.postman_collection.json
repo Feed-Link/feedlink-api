@@ -1,0 +1,691 @@
+{
+  "info": {
+    "name": "FeedLink API",
+    "description": "Complete FeedLink API collection. Base URL: https://api.feedlink.tech/api\n\nSetup:\n1. Run 'POST /auth/login' — tokens auto-saved to collection variables\n2. Use {{access_token}} is injected automatically in all authenticated requests\n3. Set {{listing_id}}, {{claim_id}}, {{request_id}}, {{acceptance_id}} after creating resources",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://api.feedlink.tech/api", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "listing_id", "value": "", "type": "string" },
+    { "key": "claim_id", "value": "", "type": "string" },
+    { "key": "request_id", "value": "", "type": "string" },
+    { "key": "acceptance_id", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET / — Health check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/", "host": ["{{base_url}}"], "path": [""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Donor\",\n  \"email\": \"donor@example.com\",\n  \"contact\": \"9841000001\",\n  \"password\": \"password123\",\n  \"role\": \"donor\",\n  \"location\": { \"lat\": 27.7172, \"long\": 85.3240 },\n  \"terms_accepted\": true\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /auth/register (recipient)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Recipient\",\n  \"email\": \"recipient@example.com\",\n  \"contact\": \"9841000002\",\n  \"password\": \"password123\",\n  \"role\": \"recipient\",\n  \"location\": { \"lat\": 27.7172, \"long\": 85.3240 },\n  \"terms_accepted\": true\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] }
+          }
+        },
+        {
+          "name": "POST /auth/verify-otp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.collectionVariables.set('access_token', data.access_token);",
+                  "  pm.collectionVariables.set('refresh_token', data.refresh_token);",
+                  "  console.log('Tokens saved from OTP verification');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"donor@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/verify-otp", "host": ["{{base_url}}"], "path": ["auth", "verify-otp"] }
+          }
+        },
+        {
+          "name": "POST /auth/resend-otp",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"donor@example.com\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/resend-otp", "host": ["{{base_url}}"], "path": ["auth", "resend-otp"] }
+          }
+        },
+        {
+          "name": "POST /auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 202) {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.collectionVariables.set('access_token', data.access_token);",
+                  "  pm.collectionVariables.set('refresh_token', data.refresh_token);",
+                  "  console.log('Tokens saved. access_token:', data.access_token.substring(0, 20) + '...');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"donor@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "GET /auth/logout",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] }
+          }
+        },
+        {
+          "name": "POST /auth/refresh-token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.collectionVariables.set('access_token', data.access_token);",
+                  "  pm.collectionVariables.set('refresh_token', data.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/refresh-token", "host": ["{{base_url}}"], "path": ["auth", "refresh-token"] }
+          }
+        },
+        {
+          "name": "POST /auth/forgot-password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"donor@example.com\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/forgot-password", "host": ["{{base_url}}"], "path": ["auth", "forgot-password"] }
+          }
+        },
+        {
+          "name": "POST /auth/reset-password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"donor@example.com\",\n  \"otp\": \"123456\",\n  \"password\": \"newpassword123\",\n  \"password_confirmation\": \"newpassword123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/reset-password", "host": ["{{base_url}}"], "path": ["auth", "reset-password"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Donor — Listings",
+      "item": [
+        {
+          "name": "GET /donor/stats",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/donor/stats", "host": ["{{base_url}}"], "path": ["donor", "stats"] }
+          }
+        },
+        {
+          "name": "GET /donor/listings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/donor/listings?status=active&page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["donor", "listings"],
+              "query": [
+                { "key": "status", "value": "active", "description": "active | claimed | completed | expired | cancelled" },
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "15" },
+                { "key": "sort_by", "value": "created_at", "disabled": true },
+                { "key": "sort_order", "value": "desc", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /donor/listings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const id = pm.response.json().data.id;",
+                  "  pm.collectionVariables.set('listing_id', id);",
+                  "  console.log('listing_id saved:', id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Leftover Dal Bhat\",\n  \"description\": \"Freshly cooked, enough for 15 people\",\n  \"quantity\": \"15 portions\",\n  \"tags\": [\"for_humans\", \"cooked\"],\n  \"photos\": [],\n  \"expires_at\": \"2026-05-10T18:00:00Z\",\n  \"pickup_before\": \"2026-05-10T20:00:00Z\",\n  \"pickup_instructions\": \"Call before coming\",\n  \"latitude\": 27.7172,\n  \"longitude\": 85.3240,\n  \"address\": \"Thamel, Kathmandu\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/donor/listings", "host": ["{{base_url}}"], "path": ["donor", "listings"] }
+          }
+        },
+        {
+          "name": "GET /donor/listings/:id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/donor/listings/{{listing_id}}", "host": ["{{base_url}}"], "path": ["donor", "listings", "{{listing_id}}"] }
+          }
+        },
+        {
+          "name": "PUT /donor/listings/:id",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": \"20 portions\",\n  \"pickup_instructions\": \"Ring the bell\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/donor/listings/{{listing_id}}", "host": ["{{base_url}}"], "path": ["donor", "listings", "{{listing_id}}"] }
+          }
+        },
+        {
+          "name": "DELETE /donor/listings/:id — Cancel",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/donor/listings/{{listing_id}}", "host": ["{{base_url}}"], "path": ["donor", "listings", "{{listing_id}}"] }
+          }
+        },
+        {
+          "name": "POST /donor/listings/:id/relist — Get template",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/donor/listings/{{listing_id}}/relist", "host": ["{{base_url}}"], "path": ["donor", "listings", "{{listing_id}}", "relist"] }
+          }
+        },
+        {
+          "name": "POST /donor/listings/:id/reopen",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/donor/listings/{{listing_id}}/reopen", "host": ["{{base_url}}"], "path": ["donor", "listings", "{{listing_id}}", "reopen"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Donor — Claims",
+      "item": [
+        {
+          "name": "GET /donor/listings/:listingId/claims",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/donor/listings/{{listing_id}}/claims", "host": ["{{base_url}}"], "path": ["donor", "listings", "{{listing_id}}", "claims"] }
+          }
+        },
+        {
+          "name": "POST /donor/listings/:listingId/claims/:claimId/confirm",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/donor/listings/{{listing_id}}/claims/{{claim_id}}/confirm", "host": ["{{base_url}}"], "path": ["donor", "listings", "{{listing_id}}", "claims", "{{claim_id}}", "confirm"] }
+          }
+        },
+        {
+          "name": "POST /donor/listings/:listingId/claims/:claimId/reject",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/donor/listings/{{listing_id}}/claims/{{claim_id}}/reject", "host": ["{{base_url}}"], "path": ["donor", "listings", "{{listing_id}}", "claims", "{{claim_id}}", "reject"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Donor — Requests",
+      "item": [
+        {
+          "name": "GET /donor/requests — Browse nearby (uses stored location if no lat/lng)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/donor/requests?radius=5&status=open",
+              "host": ["{{base_url}}"],
+              "path": ["donor", "requests"],
+              "query": [
+                { "key": "lat", "value": "27.7172", "disabled": true, "description": "Optional — falls back to stored profile location" },
+                { "key": "lng", "value": "85.3240", "disabled": true },
+                { "key": "radius", "value": "5", "description": "km, default 5" },
+                { "key": "status", "value": "open", "description": "open | accepted | fulfilled | expired | cancelled" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /donor/requests/:requestId/accept",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"I can deliver tomorrow morning\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/donor/requests/{{request_id}}/accept", "host": ["{{base_url}}"], "path": ["donor", "requests", "{{request_id}}", "accept"] }
+          }
+        },
+        {
+          "name": "DELETE /donor/requests/:requestId/accept — Withdraw",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/donor/requests/{{request_id}}/accept", "host": ["{{base_url}}"], "path": ["donor", "requests", "{{request_id}}", "accept"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recipient — Listings & Claims",
+      "item": [
+        {
+          "name": "GET /recipient/listings — All active listings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/recipient/listings?page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["recipient", "listings"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "15" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /recipient/listings/:id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/recipient/listings/{{listing_id}}", "host": ["{{base_url}}"], "path": ["recipient", "listings", "{{listing_id}}"] }
+          }
+        },
+        {
+          "name": "POST /recipient/listings/:listingId/claim",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const id = pm.response.json().data.id;",
+                  "  pm.collectionVariables.set('claim_id', id);",
+                  "  console.log('claim_id saved:', id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Picking up for 15 shelter residents\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/recipient/listings/{{listing_id}}/claim", "host": ["{{base_url}}"], "path": ["recipient", "listings", "{{listing_id}}", "claim"] }
+          }
+        },
+        {
+          "name": "DELETE /recipient/listings/:listingId/claim — Cancel",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/recipient/listings/{{listing_id}}/claim", "host": ["{{base_url}}"], "path": ["recipient", "listings", "{{listing_id}}", "claim"] }
+          }
+        },
+        {
+          "name": "POST /recipient/listings/:listingId/complete — Mark collected",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/recipient/listings/{{listing_id}}/complete", "host": ["{{base_url}}"], "path": ["recipient", "listings", "{{listing_id}}", "complete"] }
+          }
+        },
+        {
+          "name": "GET /recipient/claims — My claims",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/recipient/claims",
+              "host": ["{{base_url}}"],
+              "path": ["recipient", "claims"],
+              "query": [
+                { "key": "status", "value": "pending", "disabled": true, "description": "pending | confirmed | rejected" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recipient — Requests",
+      "item": [
+        {
+          "name": "GET /recipient/requests — My requests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/recipient/requests?page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["recipient", "requests"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "per_page", "value": "15" },
+                { "key": "status", "value": "open", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /recipient/requests — Create request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const id = pm.response.json().data.id;",
+                  "  pm.collectionVariables.set('request_id', id);",
+                  "  console.log('request_id saved:', id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Rice for 20 families\",\n  \"description\": \"For our community shelter\",\n  \"quantity_needed\": \"20 kg\",\n  \"tags\": [\"for_humans\"],\n  \"needed_by\": \"2026-05-15T18:00:00Z\",\n  \"latitude\": 27.7172,\n  \"longitude\": 85.3240,\n  \"address\": \"Baneshwor, Kathmandu\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/recipient/requests", "host": ["{{base_url}}"], "path": ["recipient", "requests"] }
+          }
+        },
+        {
+          "name": "GET /recipient/requests/:id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/recipient/requests/{{request_id}}", "host": ["{{base_url}}"], "path": ["recipient", "requests", "{{request_id}}"] }
+          }
+        },
+        {
+          "name": "PUT /recipient/requests/:id",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity_needed\": \"25 kg\",\n  \"description\": \"Updated — for shelter + nearby families\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/recipient/requests/{{request_id}}", "host": ["{{base_url}}"], "path": ["recipient", "requests", "{{request_id}}"] }
+          }
+        },
+        {
+          "name": "DELETE /recipient/requests/:id — Cancel",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/recipient/requests/{{request_id}}", "host": ["{{base_url}}"], "path": ["recipient", "requests", "{{request_id}}"] }
+          }
+        },
+        {
+          "name": "GET /recipient/requests/:requestId/acceptances",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/recipient/requests/{{request_id}}/acceptances", "host": ["{{base_url}}"], "path": ["recipient", "requests", "{{request_id}}", "acceptances"] }
+          }
+        },
+        {
+          "name": "POST /recipient/requests/:requestId/acceptances/:acceptanceId/confirm",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/recipient/requests/{{request_id}}/acceptances/{{acceptance_id}}/confirm", "host": ["{{base_url}}"], "path": ["recipient", "requests", "{{request_id}}", "acceptances", "{{acceptance_id}}", "confirm"] }
+          }
+        },
+        {
+          "name": "POST /recipient/requests/:requestId/acceptances/:acceptanceId/reject",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/recipient/requests/{{request_id}}/acceptances/{{acceptance_id}}/reject", "host": ["{{base_url}}"], "path": ["recipient", "requests", "{{request_id}}", "acceptances", "{{acceptance_id}}", "reject"] }
+          }
+        },
+        {
+          "name": "POST /recipient/requests/:requestId/complete — Mark fulfilled",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/recipient/requests/{{request_id}}/complete", "host": ["{{base_url}}"], "path": ["recipient", "requests", "{{request_id}}", "complete"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Nearby (Any Auth)",
+      "item": [
+        {
+          "name": "GET /listings/nearby",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/listings/nearby?lat=27.7172&lng=85.3240&radius=5",
+              "host": ["{{base_url}}"],
+              "path": ["listings", "nearby"],
+              "query": [
+                { "key": "lat", "value": "27.7172" },
+                { "key": "lng", "value": "85.3240" },
+                { "key": "radius", "value": "5", "description": "1–50 km, default 5" },
+                { "key": "food_type", "value": "human", "disabled": true, "description": "human | animal | both — maps to tags internally" },
+                { "key": "status", "value": "active", "disabled": true, "description": "active | claimed | completed | expired | cancelled" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /requests/nearby",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/requests/nearby?lat=27.7172&lng=85.3240&radius=5",
+              "host": ["{{base_url}}"],
+              "path": ["requests", "nearby"],
+              "query": [
+                { "key": "lat", "value": "27.7172" },
+                { "key": "lng", "value": "85.3240" },
+                { "key": "radius", "value": "5", "description": "1–50 km, default 5" },
+                { "key": "food_type", "value": "human", "disabled": true, "description": "human | animal | both — maps to tags internally" },
+                { "key": "status", "value": "open", "disabled": true, "description": "open | accepted | fulfilled | expired | cancelled" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User & Profile",
+      "item": [
+        {
+          "name": "GET /user/profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/user/profile", "host": ["{{base_url}}"], "path": ["user", "profile"] }
+          }
+        },
+        {
+          "name": "PUT /user/profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"contact\": \"9841999888\",\n  \"profile_photo\": \"https://res.cloudinary.com/feedlink/image/upload/v1/feedlink/profiles/abc.jpg\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/user/profile", "host": ["{{base_url}}"], "path": ["user", "profile"] }
+          }
+        },
+        {
+          "name": "PUT /user/location",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 27.7172,\n  \"longitude\": 85.3240\n}"
+            },
+            "url": { "raw": "{{base_url}}/user/location", "host": ["{{base_url}}"], "path": ["user", "location"] }
+          }
+        },
+        {
+          "name": "POST /user/device-token — Register FCM token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcm_token\": \"your-firebase-fcm-device-token-here\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/user/device-token", "host": ["{{base_url}}"], "path": ["user", "device-token"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "GET /notifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/notifications?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"],
+              "query": [{ "key": "per_page", "value": "15" }]
+            }
+          }
+        },
+        {
+          "name": "PUT /notifications/read-all",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{base_url}}/notifications/read-all", "host": ["{{base_url}}"], "path": ["notifications", "read-all"] }
+          }
+        },
+        {
+          "name": "PUT /notifications/:id/read",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{base_url}}/notifications/:notification_id/read", "host": ["{{base_url}}"], "path": ["notifications", ":notification_id", "read"], "variable": [{ "key": "notification_id", "value": "" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Upload",
+      "item": [
+        {
+          "name": "POST /upload/photo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "photo", "type": "file", "src": "", "description": "image/jpeg|png|webp|jpg, max 5MB" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/upload/photo", "host": ["{{base_url}}"], "path": ["upload", "photo"] }
+          }
+        }
+      ]
+    }
+  ]
+}

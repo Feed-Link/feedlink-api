@@ -2,8 +2,9 @@
 
 namespace App\Modules\FoodListings\Repositories;
 
-use App\Modules\FoodListings\Entities\ListingClaim;
+use App\Modules\Core\Enums\ClaimStatusEnum;
 use App\Modules\Core\Repositories\BaseRepository;
+use App\Modules\FoodListings\Entities\ListingClaim;
 
 class ListingClaimRepository extends BaseRepository
 {
@@ -40,5 +41,19 @@ class ListingClaimRepository extends BaseRepository
             ->where('recipient_id', $recipientId)
             ->where('status', 'pending')
             ->first();
+    }
+
+    public function resetAllClaimsForListing(string $listingId): void
+    {
+        $this->model::query()
+            ->where('food_listing_id', $listingId)
+            ->update(['status' => ClaimStatusEnum::PENDING->value]);
+    }
+
+    public function rejectAllClaimsForListing(string $listingId): void
+    {
+        $this->model::query()
+            ->where('food_listing_id', $listingId)
+            ->update(['status' => ClaimStatusEnum::REJECTED->value]);
     }
 }

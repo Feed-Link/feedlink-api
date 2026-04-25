@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleSeeder extends Seeder
 {
@@ -12,6 +14,8 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         $permissions = [
             // Donor permissions
             'create listing', 'view listing', 'update listing', 'delete listing',
@@ -30,7 +34,7 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($permissions as $name) {
-            \App\Models\Permission::firstOrCreate([
+            Permission::firstOrCreate([
                 'name' => $name,
                 'guard_name' => 'api',
             ]);
