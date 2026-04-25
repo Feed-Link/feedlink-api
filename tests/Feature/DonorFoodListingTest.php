@@ -25,7 +25,7 @@ class DonorFoodListingTest extends TestCase
             'title' => 'Dal Bhat leftovers',
             'description' => 'Enough for 10 people',
             'quantity' => '10 portions',
-            'food_type' => 'human',
+            'tags' => ['for_humans', 'cooked'],
             'photos' => ['https://example.com/photo.jpg'],
             'expires_at' => now()->addHours(3)->format('Y-m-d H:i:s'),
             'pickup_before' => now()->addHours(5)->format('Y-m-d H:i:s'),
@@ -51,13 +51,19 @@ class DonorFoodListingTest extends TestCase
         Passport::actingAs($this->donor, ['*']);
 
         $listing = FoodListing::create([
-            ...$this->listingPayload(),
             'donor_id' => $this->donor->id,
+            'title' => 'Dal Bhat leftovers',
+            'quantity' => '10 portions',
             'status' => 'active',
+            'expires_at' => now()->addHours(3),
+            'pickup_before' => now()->addHours(5),
+            'latitude' => 27.7172,
+            'longitude' => 85.3240,
+            'address' => 'Thamel, Kathmandu',
             'location' => ['lat' => 27.7172, 'long' => 85.3240],
         ]);
 
-        $response = $this->putJson('/api/donor/listings/' . $listing->id, [
+        $response = $this->putJson('/api/donor/listings/'.$listing->id, [
             'quantity' => '15 portions',
         ]);
 

@@ -8,6 +8,7 @@ use App\Modules\Core\Enums\NotificationTypeEnum;
 use App\Modules\FoodListings\Repositories\FoodListingRepository;
 use App\Modules\Notifications\Jobs\SendNotificationJob;
 use Exception;
+use Illuminate\Support\Str;
 
 class CompleteListingService
 {
@@ -17,6 +18,10 @@ class CompleteListingService
 
     public function complete(string $listingId, string $recipientId): object
     {
+        if (! Str::isUuid($listingId)) {
+            throw new Exception('Listing not found', 404);
+        }
+
         $listing = $this->foodListingRepository->fetchBy('id', $listingId, ['donor', 'claimedRecipient', 'tags']);
 
         if (! $listing) {

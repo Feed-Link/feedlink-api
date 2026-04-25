@@ -345,7 +345,6 @@ class FoodListingService
             'title' => $listing->title,
             'description' => $listing->description,
             'quantity' => $listing->quantity,
-            'food_type' => $listing->food_type,
             'tags' => $listing->relationLoaded('tags') ? $listing->tags->map(fn ($tag) => [
                 'slug' => $tag->slug,
                 'name' => $tag->name,

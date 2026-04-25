@@ -25,10 +25,18 @@ class DonorFoodRequestController extends Controller
     {
         try {
             $validated = $request->validate([
-                'lat' => 'required|numeric|between:-90,90',
-                'lng' => 'required|numeric|between:-180,180',
+                'lat' => 'sometimes|numeric|between:-90,90',
+                'lng' => 'sometimes|numeric|between:-180,180',
                 'radius' => 'nullable|numeric|min:0.1|max:100',
             ]);
+
+            $user = Auth::user();
+            $validated['lat'] = $validated['lat'] ?? $user->latitude;
+            $validated['lng'] = $validated['lng'] ?? $user->longitude;
+
+            if (! $validated['lat'] || ! $validated['lng']) {
+                throw new Exception('Location required. Provide lat/lng or update your profile location.', 422);
+            }
 
             $validated['status'] = 'open';
 

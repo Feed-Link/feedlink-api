@@ -21,7 +21,6 @@ class FoodRequest extends BaseModel
         'title',
         'description',
         'quantity_needed',
-        'food_type',
         'needed_by',
         'status',
         'latitude',

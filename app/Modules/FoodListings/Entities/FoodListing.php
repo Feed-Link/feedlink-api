@@ -26,7 +26,6 @@ class FoodListing extends BaseModel
         'title',
         'description',
         'quantity',
-        'food_type',
         'photos',
         'expires_at',
         'pickup_before',

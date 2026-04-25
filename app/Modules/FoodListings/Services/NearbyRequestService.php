@@ -39,7 +39,6 @@ class NearbyRequestService
             'title' => $request->title,
             'description' => $request->description,
             'quantity_needed' => $request->quantity_needed,
-            'food_type' => $request->food_type,
             'needed_by' => $request->needed_by?->toISOString(),
             'status' => $request->status,
             'latitude' => (float) $request->latitude,

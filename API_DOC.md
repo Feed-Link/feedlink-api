@@ -577,8 +577,8 @@ Reject a pending claim.
 Browse open food requests near the donor's current location. Returns `open` requests ordered by distance ascending.
 
 **Query params:**
-- `lat` (required, numeric, -90..90)
-- `lng` (required, numeric, -180..180)
+- `lat` (optional, numeric, -90..90) — falls back to the donor's stored profile location if omitted
+- `lng` (optional, numeric, -180..180) — falls back to the donor's stored profile location if omitted
 - `radius` (optional, numeric, 0.1..100, default 5 km)
 
 **Response (200):**
@@ -613,7 +613,7 @@ Browse open food requests near the donor's current location. Returns `open` requ
 ```
 
 **Error cases:**
-- `422` Missing or invalid `lat`/`lng`
+- `422` No location available (lat/lng not provided and no profile location stored)
 
 ### POST `/donor/requests/{requestId}/accept`
 Submit an acceptance offer on an open food request.

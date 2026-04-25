@@ -30,7 +30,15 @@ class FoodRequestRepository extends BaseRepository
             ->with(['recipient', 'tags']);
 
         if ($foodType) {
-            $query->where('food_type', $foodType);
+            $tagMap = [
+                'human' => ['for_humans', 'for_both'],
+                'animal' => ['for_animals', 'for_both'],
+                'both' => ['for_both'],
+            ];
+            $tagSlugs = $tagMap[$foodType] ?? [];
+            if ($tagSlugs) {
+                $query->whereHas('tags', fn ($q) => $q->whereIn('slug', $tagSlugs));
+            }
         }
 
         return $query->get();
