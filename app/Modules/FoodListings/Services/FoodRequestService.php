@@ -24,6 +24,7 @@ class FoodRequestService
             'long' => $data['longitude'],
         ];
         $data['status'] = 'open';
+        $data['expires_at'] = $data['needed_by'];
 
         $request = $this->foodRequestRepository->store($data);
 

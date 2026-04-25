@@ -28,6 +28,7 @@ class DonorFoodRequestController extends Controller
                 'lat' => 'sometimes|numeric|between:-90,90',
                 'lng' => 'sometimes|numeric|between:-180,180',
                 'radius' => 'nullable|numeric|min:0.1|max:100',
+                'status' => 'sometimes|in:open,accepted,fulfilled,expired,cancelled',
             ]);
 
             $user = Auth::user();
@@ -38,7 +39,7 @@ class DonorFoodRequestController extends Controller
                 throw new Exception('Location required. Provide lat/lng or update your profile location.', 422);
             }
 
-            $validated['status'] = 'open';
+            $validated['status'] = $validated['status'] ?? 'open';
 
             $requests = $this->nearbyRequestService->fetchNearby($validated);
 

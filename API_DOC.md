@@ -580,6 +580,7 @@ Browse open food requests near the donor's current location. Returns `open` requ
 - `lat` (optional, numeric, -90..90) — falls back to the donor's stored profile location if omitted
 - `lng` (optional, numeric, -180..180) — falls back to the donor's stored profile location if omitted
 - `radius` (optional, numeric, 0.1..100, default 5 km)
+- `status` (optional, one of `open`, `accepted`, `fulfilled`, `expired`, `cancelled`, default `open`)
 
 **Response (200):**
 ```json
