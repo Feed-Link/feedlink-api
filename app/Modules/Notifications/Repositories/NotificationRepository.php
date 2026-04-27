@@ -4,6 +4,7 @@ namespace App\Modules\Notifications\Repositories;
 
 use App\Modules\Core\Repositories\BaseRepository;
 use App\Modules\Notifications\Entities\Notification;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class NotificationRepository extends BaseRepository
@@ -14,12 +15,15 @@ class NotificationRepository extends BaseRepository
         parent::__construct();
     }
 
-    public function getForUser(string $userId, int $perPage = 15): LengthAwarePaginator
+    public function getForUser(string $userId, int $perPage = 15, bool $cursor = false): LengthAwarePaginator|CursorPaginator
     {
-        return $this->model->query()
+        $query = $this->model->query()
             ->where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->orderBy('created_at', 'desc');
+
+        return $cursor
+            ? $query->cursorPaginate($perPage)
+            : $query->paginate($perPage);
     }
 
     public function getUnreadCount(string $userId): int

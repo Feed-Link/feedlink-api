@@ -4,6 +4,7 @@ namespace App\Modules\Notifications\Services;
 
 use App\Modules\Notifications\Entities\Notification;
 use App\Modules\Notifications\Repositories\NotificationRepository;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class NotificationService
@@ -17,11 +18,12 @@ class NotificationService
         return $this->notificationRepository->store($data);
     }
 
-    public function getForUser(string $userId, array $params = []): LengthAwarePaginator
+    public function getForUser(string $userId, array $params = []): LengthAwarePaginator|CursorPaginator
     {
         $perPage = (int) ($params['per_page'] ?? 15);
+        $cursor = (bool) ($params['cursor'] ?? false);
 
-        return $this->notificationRepository->getForUser($userId, $perPage);
+        return $this->notificationRepository->getForUser($userId, $perPage, $cursor);
     }
 
     public function getUnreadCount(string $userId): int

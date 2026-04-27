@@ -996,10 +996,15 @@ Register or update the authenticated user's Firebase FCM device token. Call this
 ### GET `/notifications`
 Paginated notification center. `unread_count` drives the iOS bell badge without a separate request.
 
-**Query params:**
-- `per_page` (optional, default 15)
+Supports two pagination modes controlled by the `cursor` query parameter.
 
-**Response (200):**
+**Query params:**
+| Param | Type | Default | Description |
+|---|---|---|---|
+| `per_page` | integer | 15 | Items per page |
+| `cursor` | string | — | Omit for offset pagination. Pass `true` for the first cursor page, then pass the `next_cursor` token from the previous response to advance. |
+
+**Response (200) — offset pagination (default):**
 ```json
 {
   "status_code": 200,
@@ -1021,6 +1026,26 @@ Paginated notification center. `unread_count` drives the iOS bell badge without 
   }
 }
 ```
+
+**Response (200) — cursor pagination (`?cursor=true` or `?cursor=<token>`):**
+```json
+{
+  "status_code": 200,
+  "message": "Notifications retrieved",
+  "data": {
+    "items": [ "..." ],
+    "unread_count": 3,
+    "meta": {
+      "next_cursor": "eyJpZCI6IjEyMyIsImNyZWF0ZWRfYXQiOiIyMDI2LTA0LTIzIn0",
+      "prev_cursor": null,
+      "per_page": 15,
+      "has_more": true
+    }
+  }
+}
+```
+
+> **Cursor pagination flow:** first request → `?cursor=true`, then pass `meta.next_cursor` value as `?cursor=<token>` for each subsequent page. `next_cursor` / `prev_cursor` are `null` when there is no adjacent page.
 
 ### PUT `/notifications/{id}/read`
 Mark a single notification as read. Silently no-ops if already read.
