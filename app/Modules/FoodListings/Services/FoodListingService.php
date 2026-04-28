@@ -137,6 +137,10 @@ class FoodListingService
         ];
         $data['status'] = ListingStatusEnum::ACTIVE->value;
 
+        if (empty($data['pickup_before']) && ! empty($data['expires_at'])) {
+            $data['pickup_before'] = now()->parse($data['expires_at'])->addHours(2)->toISOString();
+        }
+
         $listing = $this->foodListingRepository->store($data);
 
         $tagIds = Tag::whereIn('slug', $tagSlugs)->pluck('id')->toArray();

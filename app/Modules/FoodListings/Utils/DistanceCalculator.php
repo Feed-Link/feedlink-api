@@ -2,17 +2,15 @@
 
 namespace App\Modules\FoodListings\Utils;
 
-use Exception;
-
 class DistanceCalculator
 {
     /**
      * Calculate distance between two lat/lng pairs using Haversine formula.
      *
-     * @param float $lat1 Origin latitude
-     * @param float $lon1 Origin longitude
-     * @param float $lat2 Destination latitude
-     * @param float $lon2 Destination longitude
+     * @param  float  $lat1  Origin latitude
+     * @param  float  $lon1  Origin longitude
+     * @param  float  $lat2  Destination latitude
+     * @param  float  $lon2  Destination longitude
      * @return float Distance in kilometers
      */
     public static function inKm(float $lat1, float $lon1, float $lat2, float $lon2): float

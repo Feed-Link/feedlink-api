@@ -10,7 +10,9 @@ use Tests\TestCase;
 class RecipientFoodListingTest extends TestCase
 {
     protected User $recipient;
+
     protected User $donor;
+
     protected FoodListing $listing;
 
     protected function setUp(): void
@@ -61,7 +63,7 @@ class RecipientFoodListingTest extends TestCase
     {
         Passport::actingAs($this->recipient);
 
-        $response = $this->getJson('/api/recipient/listings/' . $this->listing->id);
+        $response = $this->getJson('/api/recipient/listings/'.$this->listing->id);
 
         $response->assertStatus(200);
     }
@@ -70,7 +72,7 @@ class RecipientFoodListingTest extends TestCase
     {
         Passport::actingAs($this->recipient);
 
-        $response = $this->postJson('/api/recipient/listings/' . $this->listing->id . '/claim', [
+        $response = $this->postJson('/api/recipient/listings/'.$this->listing->id.'/claim', [
             'note' => 'Picking up for 10 residents',
         ]);
 
@@ -83,7 +85,7 @@ class RecipientFoodListingTest extends TestCase
 
         $this->listing->update(['status' => 'expired']);
 
-        $response = $this->postJson('/api/recipient/listings/' . $this->listing->id . '/claim', [
+        $response = $this->postJson('/api/recipient/listings/'.$this->listing->id.'/claim', [
             'note' => 'Picking up for 10 residents',
         ]);
 
@@ -100,7 +102,7 @@ class RecipientFoodListingTest extends TestCase
             'note' => 'Picking up soon',
         ]);
 
-        $response = $this->deleteJson('/api/recipient/listings/' . $this->listing->id . '/claim');
+        $response = $this->deleteJson('/api/recipient/listings/'.$this->listing->id.'/claim');
 
         $response->assertStatus(200);
     }

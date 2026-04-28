@@ -2,6 +2,8 @@
 
 namespace App\Modules\Core\Entities;
 
+use App\Modules\FoodListings\Entities\FoodListing;
+use App\Modules\FoodListings\Entities\FoodRequest;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -18,7 +20,7 @@ class Tag extends Model
     public function foodListings(): BelongsToMany
     {
         return $this->belongsToMany(
-            \App\Modules\FoodListings\Entities\FoodListing::class,
+            FoodListing::class,
             'food_listing_tags',
             'tag_id',
             'food_listing_id'
@@ -28,7 +30,7 @@ class Tag extends Model
     public function foodRequests(): BelongsToMany
     {
         return $this->belongsToMany(
-            \App\Modules\FoodListings\Entities\FoodRequest::class,
+            FoodRequest::class,
             'food_request_tags',
             'tag_id',
             'food_request_id'

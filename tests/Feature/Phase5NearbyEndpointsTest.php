@@ -11,6 +11,7 @@ use Tests\TestCase;
 class Phase5NearbyEndpointsTest extends TestCase
 {
     protected User $donor;
+
     protected User $recipient;
 
     protected function setUp(): void

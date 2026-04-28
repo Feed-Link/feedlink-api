@@ -4,8 +4,8 @@ namespace Tests\Feature\FoodSafety;
 
 use App\Models\User;
 use App\Modules\FoodListings\Entities\FoodListing;
-use App\Modules\FoodSafety\Entities\IllnessClaim;
 use App\Modules\FoodSafety\Entities\DonorWarning;
+use App\Modules\FoodSafety\Entities\IllnessClaim;
 use Tests\TestCase;
 
 class IllnessClaimTest extends TestCase

@@ -11,10 +11,13 @@ abstract class BaseRepository
     use Filterables;
 
     public Model $model;
+
     public ?string $modelName;
+
     public ?string $tableName;
 
     protected bool $sharedLock = false;
+
     protected bool $lockForUpdate = false;
 
     public function __construct()
@@ -25,10 +28,6 @@ abstract class BaseRepository
 
     /**
      * Apply pessimistic locking to the query if required.
-     * 
-     * @param object $rows
-     * 
-     * @return object
      */
     public function pessimisticLocking(object $rows): object
     {
@@ -59,15 +58,12 @@ abstract class BaseRepository
              */
             $rows->sharedLock();
         }
+
         return $rows;
     }
 
     /**
      * Store a new record.
-     * 
-     * @param array $data
-     * 
-     * @return object
      */
     public function store(array $data): object
     {
@@ -78,29 +74,22 @@ abstract class BaseRepository
 
     /**
      * Bulk insert data.
-     * 
-     * @param array $data
-     * 
-     * @return bool
      */
     public function insert(array $data): bool
     {
         $insert = DB::table($this->tableName)->insert($data);
+
         return $insert;
     }
 
     /**
      * Fetch all records without filtering.
-     * 
-     * @param array $with
-     * 
-     * @return object
      */
     public function fetch(array $with = []): object
     {
         $rows = $this->model::query();
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $rows = $rows->with($with);
         }
 
@@ -111,7 +100,7 @@ abstract class BaseRepository
     {
         $rows = $this->model::query();
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $rows = $rows->with($with);
         }
         $rows = $rows->where($column, $value);
@@ -123,11 +112,6 @@ abstract class BaseRepository
 
     /**
      * Fetch all records with filtering, sorting, and pagination.
-     * 
-     * @param array $params
-     * @param array $with
-     * 
-     * @return object
      */
     public function fetchAll(array $params, array $with = []): object
     {
@@ -135,16 +119,12 @@ abstract class BaseRepository
         $rows = $this->model::query();
 
         $fetched = $this->getFiltered($rows, $params, $with);
+
         return $fetched;
     }
 
     /**
      * Update a record by ID.
-     * 
-     * @param string|int $id
-     * @param array $data
-     * 
-     * @return object
      */
     public function update(string|int $id, array $data): object
     {
@@ -159,10 +139,6 @@ abstract class BaseRepository
 
     /**
      * Delete a record by ID.
-     * 
-     * @param string $id
-     * 
-     * @return void
      */
     public function delete(string $id): void
     {

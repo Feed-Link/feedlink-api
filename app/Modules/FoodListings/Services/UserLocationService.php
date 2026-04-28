@@ -17,7 +17,7 @@ class UserLocationService
     {
         $user = User::find($userId);
 
-        if (!$user) {
+        if (! $user) {
             throw new Exception('User not found', 404);
         }
 

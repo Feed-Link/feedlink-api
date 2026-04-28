@@ -12,19 +12,14 @@ trait Filterables
     protected int $defaultItemsPerPage = 25;
 
     private array $comparisonOperators = [
-        '__gt_'  => '>',
+        '__gt_' => '>',
         '__gte_' => '>=',
-        '__lt_'  => '<',
+        '__lt_' => '<',
         '__lte_' => '<=',
     ];
 
     /**
-     *
      * Validates params parameters.
-     *
-     * @param array $params
-     *
-     * @return array
      */
     public function validateFiltering(array $params): array
     {
@@ -63,11 +58,6 @@ trait Filterables
 
     /**
      * Get filtered data.
-     *
-     * @param  object $rows
-     * @param  array $params
-     *
-     * @return object
      */
     public function getFiltered(object $rows, array $params, array $with = []): object
     {
@@ -90,11 +80,6 @@ trait Filterables
 
     /**
      * Search by params params in current instance of eloquent.
-     *
-     * @param  object $rows
-     * @param  object $params
-     *
-     * @return object
      */
     protected function loadSearch(object $rows, object $params): object
     {
@@ -115,18 +100,13 @@ trait Filterables
 
     /**
      * Filter by params params in current instance of eloquent.
-     *
-     * @param  object $rows
-     * @param  object $params
-     *
-     * @return object
      */
     protected function loadFiltered(object $rows, object $params): object
     {
         try {
             if (
                 $params->offsetExists('filter')
-                && !empty($params->filter)
+                && ! empty($params->filter)
             ) {
                 $searchable = method_exists($this->model, 'getSearchable')
                     ? $this->model::getSearchable()
@@ -150,10 +130,8 @@ trait Filterables
     /**
      * loadRelationships loads relationship.
      *
-     * @param  mixed $rows
-     * @param  mixed $with
-     *
-     * @return object
+     * @param  mixed  $rows
+     * @param  mixed  $with
      */
     protected function loadRelationships(object $rows, array $with): object
     {
@@ -170,11 +148,6 @@ trait Filterables
 
     /**
      * Sort by params params in current instance of eloquent
-     *
-     * @param  object $rows
-     * @param  object $params
-     *
-     * @return object
      */
     protected function loadSorted(object $rows, object $params): object
     {
@@ -192,11 +165,6 @@ trait Filterables
 
     /**
      * Compare params params in current instance of eloquent
-     *
-     * @param  object $rows
-     * @param  object $params
-     *
-     * @return object
      */
     protected function loadCompared(object $rows, object $params): object
     {
@@ -208,6 +176,7 @@ trait Filterables
 
             $comparisonParameters = array_filter($parameters, function ($parameter) {
                 preg_match('/^__[a-zA-Z]+_/', $parameter, $match);
+
                 return count($match) > 0;
             });
 
@@ -217,7 +186,7 @@ trait Filterables
                 $parameter = str_replace($comparison, '', $comparisonParameter);
                 $compareWith = $params->{$comparisonParameter};
 
-                if (!in_array($parameter, $searchable)) {
+                if (! in_array($parameter, $searchable)) {
                     continue;
                 }
 
@@ -236,11 +205,6 @@ trait Filterables
 
     /**
      * Paginate or get all data.
-     *
-     * @param  object $rows
-     * @param  object $params
-     *
-     * @return object
      */
     protected function loadPaginated(object $rows, object $params): object
     {

@@ -4,18 +4,17 @@ namespace App\Modules\FoodListings\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\FoodListings\Services\UserLocationService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Exception;
 use Symfony\Component\HttpFoundation\Response;
 
 class UserLocationController extends Controller
 {
     public function __construct(
         protected UserLocationService $userLocationService
-    ) {
-    }
+    ) {}
 
     /**
      * PUT /api/user/location

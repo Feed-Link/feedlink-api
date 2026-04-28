@@ -6,7 +6,6 @@ use Illuminate\Foundation\Http\FormRequest;
 
 abstract class BaseRequest extends FormRequest
 {
-
     /**
      * Get the validation rules that apply to the request
      *
@@ -25,8 +24,6 @@ abstract class BaseRequest extends FormRequest
 
     /**
      * Get the validation rule that apply to store request
-     *
-     * @return array
      */
     public function store(): array
     {
@@ -35,8 +32,6 @@ abstract class BaseRequest extends FormRequest
 
     /**
      * Get the validation rule that apply to update request
-     *
-     * @return array
      */
     public function update(): array
     {

@@ -4,29 +4,32 @@ use App\Http\Middleware\IsAdminMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Lcobucci\JWT\Validation\FailedValidation;
+use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
+use League\OAuth2\Server\Exception\OAuthServerException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__ . '/../routes/web.php',
-        api: __DIR__ . '/../routes/api.php',
-        commands: __DIR__ . '/../routes/console.php',
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'is_admin'           => IsAdminMiddleware::class,
-            'role'               => RoleMiddleware::class,
-            'permission'         => PermissionMiddleware::class,
+            'is_admin' => IsAdminMiddleware::class,
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (Throwable $e) {
             // Handle expired JWT tokens
-            if ($e instanceof \Lcobucci\JWT\Validation\RequiredConstraintsViolated) {
+            if ($e instanceof RequiredConstraintsViolated) {
                 return response()->json([
                     'message' => 'Token expired or invalid',
                     'error' => 'token_expired',
@@ -34,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             // Handle other JWT validation errors
-            if ($e instanceof \Lcobucci\JWT\Validation\FailedValidation) {
+            if ($e instanceof FailedValidation) {
                 return response()->json([
                     'message' => 'Invalid token',
                     'error' => 'invalid_token',
@@ -42,7 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             // Handle missing or invalid bearer token
-            if ($e instanceof \League\OAuth2\Server\Exception\OAuthServerException) {
+            if ($e instanceof OAuthServerException) {
                 return response()->json([
                     'message' => $e->getMessage(),
                     'error' => 'unauthorized',

@@ -14,8 +14,11 @@ use Tests\TestCase;
 class ClaimStatusNotificationsTest extends TestCase
 {
     protected User $donor;
+
     protected User $recipient;
+
     protected FoodListing $listing;
+
     protected ListingClaim $claim;
 
     protected function setUp(): void
@@ -29,22 +32,22 @@ class ClaimStatusNotificationsTest extends TestCase
         $this->recipient->assignRole('recipient');
 
         $this->listing = FoodListing::create([
-            'donor_id'      => $this->donor->id,
-            'title'         => 'Dal Bhat',
-            'quantity'      => '10 portions',
-            'status'        => 'active',
-            'expires_at'    => now()->addHours(3),
+            'donor_id' => $this->donor->id,
+            'title' => 'Dal Bhat',
+            'quantity' => '10 portions',
+            'status' => 'active',
+            'expires_at' => now()->addHours(3),
             'pickup_before' => now()->addHours(5),
-            'latitude'      => 27.7172,
-            'longitude'     => 85.3240,
-            'address'       => 'Thamel, Kathmandu',
-            'location'      => ['lat' => 27.7172, 'long' => 85.3240],
+            'latitude' => 27.7172,
+            'longitude' => 85.3240,
+            'address' => 'Thamel, Kathmandu',
+            'location' => ['lat' => 27.7172, 'long' => 85.3240],
         ]);
 
         $this->claim = ListingClaim::create([
             'food_listing_id' => $this->listing->id,
-            'recipient_id'    => $this->recipient->id,
-            'status'          => 'pending',
+            'recipient_id' => $this->recipient->id,
+            'status' => 'pending',
         ]);
     }
 
@@ -70,8 +73,8 @@ class ClaimStatusNotificationsTest extends TestCase
 
         $otherClaim = ListingClaim::create([
             'food_listing_id' => $this->listing->id,
-            'recipient_id'    => $otherRecipient->id,
-            'status'          => 'pending',
+            'recipient_id' => $otherRecipient->id,
+            'status' => 'pending',
         ]);
 
         Passport::actingAs($this->donor);

@@ -386,7 +386,7 @@ Create listing.
 - `photos`: nullable|array
 - `photos.*`: string
 - `expires_at`: required|date|after:now
-- `pickup_before`: required|date|after:expires_at
+- `pickup_before`: sometimes|nullable|date|after:expires_at
 - `pickup_instructions`: nullable|string
 - `latitude`: required|numeric|between:-90,90
 - `longitude`: required|numeric|between:-180,180
@@ -424,7 +424,7 @@ Update listing.
 - `photos`: nullable|array
 - `photos.*`: string
 - `expires_at`: sometimes|date|after:now
-- `pickup_before`: sometimes|date|after:expires_at
+- `pickup_before`: sometimes|nullable|date|after:expires_at
 - `pickup_instructions`: nullable|string
 - `latitude`: sometimes|numeric|between:-90,90
 - `longitude`: sometimes|numeric|between:-180,180

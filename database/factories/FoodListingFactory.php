@@ -8,7 +8,7 @@ use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Modules\FoodListings\Entities\FoodListing>
+ * @extends Factory<FoodListing>
  */
 class FoodListingFactory extends Factory
 {
