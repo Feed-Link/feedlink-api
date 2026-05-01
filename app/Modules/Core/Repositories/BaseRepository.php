@@ -16,50 +16,10 @@ abstract class BaseRepository
 
     public ?string $tableName;
 
-    protected bool $sharedLock = false;
-
-    protected bool $lockForUpdate = false;
-
     public function __construct()
     {
         $this->tableName = $this->model->getTable();
         $this->modelName = class_basename($this->model);
-    }
-
-    /**
-     * Apply pessimistic locking to the query if required.
-     */
-    public function pessimisticLocking(object $rows): object
-    {
-        if (
-            DB::transactionLevel() > 0
-            && $this->lockForUpdate
-            && ! $this->sharedLock
-        ) {
-            /**
-             * @example
-             * START TRANSACTION;
-             *   SELECT * from list WHERE list = 1 FOR UPDATE;
-             *   # Do something
-             * COMMIT;
-             */
-            $rows->lockForUpdate();
-        } elseif (
-            DB::transactionLevel() > 0
-            && $this->sharedLock
-            && ! $this->lockForUpdate
-        ) {
-            /**
-             * @example
-             * START TRANSACTION;
-             *   SELECT * from list WHERE list = 1 LOCK IN SHARE MODE;
-             *   # Do something
-             * COMMIT;
-             */
-            $rows->sharedLock();
-        }
-
-        return $rows;
     }
 
     /**
@@ -104,7 +64,6 @@ abstract class BaseRepository
             $rows = $rows->with($with);
         }
         $rows = $rows->where($column, $value);
-        $rows = $this->pessimisticLocking($rows);
         $fetched = $rows->first();
 
         return $fetched;
@@ -129,8 +88,6 @@ abstract class BaseRepository
     public function update(string|int $id, array $data): object
     {
         $rows = $this->model::whereId($id);
-        $this->pessimisticLocking($rows);
-
         $updated = $rows->firstOrFail();
         $updated->update($data);
 
