@@ -386,7 +386,8 @@ Create listing.
 - `photos`: nullable|array
 - `photos.*`: string
 - `expires_at`: required|date|after:now
-- `pickup_before`: sometimes|nullable|date|after:expires_at
+- `pickup_before`: sometimes|nullable|date|after:expires_at  
+  **Note:** Optional. If omitted, defaults to `expires_at + 2 hours`.
 - `pickup_instructions`: nullable|string
 - `latitude`: required|numeric|between:-90,90
 - `longitude`: required|numeric|between:-180,180
@@ -424,7 +425,8 @@ Update listing.
 - `photos`: nullable|array
 - `photos.*`: string
 - `expires_at`: sometimes|date|after:now
-- `pickup_before`: sometimes|nullable|date|after:expires_at
+- `pickup_before`: sometimes|nullable|date|after:expires_at  
+  **Note:** Optional. If omitted, defaults to `expires_at + 2 hours`.
 - `pickup_instructions`: nullable|string
 - `latitude`: sometimes|numeric|between:-90,90
 - `longitude`: sometimes|numeric|between:-180,180
@@ -1129,6 +1131,6 @@ Mark all of the authenticated user's notifications as read.
 - `login` returns `202 Accepted` status.
 - `reset-password` requires `password_confirmation`.
 - Listing `PUT` updates are only allowed when `status = active`.
-- `expires_at` closes the listing to new claims. `pickup_before` is the confirmed recipient's pickup deadline. The scheduler expires `claimed` listings past `pickup_before` automatically.
+- `expires_at` closes the listing to new claims. `pickup_before` is the confirmed recipient's pickup deadline (defaults to `expires_at + 2 hours` if not set). The scheduler expires `claimed` listings past `pickup_before` automatically.
 - `recipient/requests` CRUD routes are not currently registered.
 - Listing resource `donor` shape now includes `contact` (phone number) — use this on the confirmed-claim detail screen so the recipient can call before arriving.
