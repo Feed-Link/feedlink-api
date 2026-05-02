@@ -25,6 +25,7 @@ Route::get('/', function () {
 Route::prefix('auth')
     ->group(function () {
         Route::post('register', [UserController::class, 'register']);
+        Route::post('guest-register', [UserController::class, 'guestRegister']);
         Route::post('login', [UserController::class, 'login']);
         Route::get('logout', [UserController::class, 'logout'])->middleware('auth:api');
         Route::post('verify-otp', [UserController::class, 'verifyOTP']);
@@ -40,7 +41,7 @@ Route::prefix('auth')
  * ====================================
  */
 Route::prefix('donor')
-    ->middleware(['auth:api', 'role:donor'])
+    ->middleware(['auth:api', 'role:donor|guest'])
     ->group(function () {
         Route::get('stats', [DonorFoodListingController::class, 'stats']);
         Route::get('listings', [DonorFoodListingController::class, 'index']);
@@ -97,6 +98,7 @@ Route::middleware(['auth:api'])
         Route::put('user/location', [UserLocationController::class, 'update']);
         Route::get('user/profile', [UserController::class, 'profile']);
         Route::put('user/profile', [UserController::class, 'updateProfile']);
+        Route::post('user/upgrade-guest', [UserController::class, 'upgradeGuest']);
         Route::post('upload/photo', [UploadController::class, 'photo']);
         Route::post('user/device-token', [UserController::class, 'registerDeviceToken']);
         Route::get('notifications', [NotificationController::class, 'index']);

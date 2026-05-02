@@ -40,6 +40,7 @@ Validation failures (`422`) may return Laravel validation error format.
 |---|---|---|---|
 | GET | `/` | No | Public |
 | POST | `/auth/register` | No | Public |
+| POST | `/auth/guest-register` | No | Public (guest) |
 | POST | `/auth/login` | No | Public |
 | GET | `/auth/logout` | Yes | Any |
 | POST | `/auth/verify-otp` | No | Public |
@@ -47,17 +48,17 @@ Validation failures (`422`) may return Laravel validation error format.
 | POST | `/auth/refresh-token` | No | Public |
 | POST | `/auth/forgot-password` | No | Public |
 | POST | `/auth/reset-password` | No | Public |
-| GET | `/donor/listings` | Yes | donor |
-| POST | `/donor/listings` | Yes | donor |
-| GET | `/donor/listings/{id}` | Yes | donor |
-| PUT | `/donor/listings/{id}` | Yes | donor |
-| DELETE | `/donor/listings/{id}` | Yes | donor |
-| GET | `/donor/stats` | Yes | donor |
-| POST | `/donor/listings/{id}/relist` | Yes | donor |
-| POST | `/donor/listings/{id}/reopen` | Yes | donor |
-| GET | `/donor/listings/{listingId}/claims` | Yes | donor |
-| POST | `/donor/listings/{listingId}/claims/{claimId}/confirm` | Yes | donor |
-| POST | `/donor/listings/{listingId}/claims/{claimId}/reject` | Yes | donor |
+| GET | `/donor/listings` | Yes | donor, guest |
+| POST | `/donor/listings` | Yes | donor, guest |
+| GET | `/donor/listings/{id}` | Yes | donor, guest |
+| PUT | `/donor/listings/{id}` | Yes | donor, guest |
+| DELETE | `/donor/listings/{id}` | Yes | donor, guest |
+| GET | `/donor/stats` | Yes | donor, guest |
+| POST | `/donor/listings/{id}/relist` | Yes | donor, guest |
+| POST | `/donor/listings/{id}/reopen` | Yes | donor, guest |
+| GET | `/donor/listings/{listingId}/claims` | Yes | donor, guest |
+| POST | `/donor/listings/{listingId}/claims/{claimId}/confirm` | Yes | donor, guest |
+| POST | `/donor/listings/{listingId}/claims/{claimId}/reject` | Yes | donor, guest |
 | GET | `/donor/requests` | Yes | donor |
 | POST | `/donor/requests/{requestId}/accept` | Yes | donor |
 | DELETE | `/donor/requests/{requestId}/accept` | Yes | donor |
@@ -81,6 +82,7 @@ Validation failures (`422`) may return Laravel validation error format.
 | PUT | `/user/location` | Yes | Any |
 | GET | `/user/profile` | Yes | Any |
 | PUT | `/user/profile` | Yes | Any |
+| PUT | `/user/upgrade-guest` | Yes | guest |
 | POST | `/user/device-token` | Yes | Any |
 | GET | `/notifications` | Yes | Any |
 | PUT | `/notifications/{id}/read` | Yes | Any |
@@ -167,6 +169,48 @@ Login user.
   }
 }
 ```
+
+### POST `/auth/guest-register`
+Register as a guest user (simplified onboarding for casual donors like party hosts).
+
+**Request body:**
+```json
+{
+  "name": "Party Host",
+  "location": {
+    "lat": 27.7172,
+    "long": 85.324
+  },
+  "contact": "9841234567"
+}
+```
+
+**Validation:**
+- `name`: required|string|max:255
+- `location`: required|array
+- `location.lat`: required_with:location|numeric|between:-90,90
+- `location.long`: required_with:location|numeric|between:-180,180
+- `contact`: nullable|string|max:20
+
+**Response (201):**
+```json
+{
+  "status_code": 201,
+  "message": "Guest registered successfully",
+  "data": {
+    "access_token": "eyJ...",
+    "refresh_token": "random64chars...",
+    "expires_in": 1800
+  }
+}
+```
+
+**Notes:**
+- Guest receives auto-generated email (`guest-{uuid}@feedlink.local`)
+- No password required
+- No OTP verification needed
+- Auto-assigned `guest` role with donor-like permissions
+- Can upgrade to full donor account via `PUT /user/upgrade-guest`
 
 ### GET `/auth/logout`
 Logout current access token. Optional query/body input: `refresh_token`.
@@ -995,6 +1039,46 @@ Register or update the authenticated user's Firebase FCM device token. Call this
 
 ---
 
+### PUT `/user/upgrade-guest`
+Upgrade guest account to full donor account. Only accessible to users with `guest` role.
+
+**Request body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "secret123",
+  "password_confirmation": "secret123",
+  "contact": "9841000000"
+}
+```
+
+**Validation:**
+- `email`: required|email|unique:users,email
+- `password`: required|string|min:6|confirmed
+- `password_confirmation`: required|string|min:6
+- `contact`: required|string|max:10
+
+**Response (200):**
+```json
+{
+  "status_code": 200,
+  "message": "Account upgraded to donor",
+  "data": {
+    "message": "Guest account upgraded to donor. Please verify your email."
+  }
+}
+```
+
+**Error cases:**
+- `400` User is not a guest account
+
+**Notes:**
+- Guest role is removed, donor role is assigned
+- OTP is sent to the new email for verification
+- After upgrade, user must verify email via `POST /auth/verify-otp`
+
+---
+
 ### GET `/notifications`
 Paginated notification center. `unread_count` drives the iOS bell badge without a separate request.
 
@@ -1080,6 +1164,7 @@ Mark all of the authenticated user's notifications as read.
 ### `role` allowed values
 - `donor`
 - `recipient`
+- `guest` (limited permissions, can upgrade to donor)
 
 ### `listing status` values (`ListingStatusEnum`)
 - `active` — visible, accepting claims
@@ -1134,3 +1219,4 @@ Mark all of the authenticated user's notifications as read.
 - `expires_at` closes the listing to new claims. `pickup_before` is the confirmed recipient's pickup deadline (defaults to `expires_at + 2 hours` if not set). The scheduler expires `claimed` listings past `pickup_before` automatically.
 - `recipient/requests` CRUD routes are not currently registered.
 - Listing resource `donor` shape now includes `contact` (phone number) — use this on the confirmed-claim detail screen so the recipient can call before arriving.
+- **Guest Mode:** Use `POST /auth/guest-register` for simplified onboarding (name + location only). Guests can create listings but cannot browse/claim. Use `PUT /user/upgrade-guest` to convert guest to full donor account.

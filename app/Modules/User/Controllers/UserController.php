@@ -5,9 +5,11 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Notifications\Requests\DeviceTokenRequest;
 use App\Modules\User\Request\ForgotPasswordRequest;
+use App\Modules\User\Request\GuestRegisterRequest;
 use App\Modules\User\Request\LoginRequest;
 use App\Modules\User\Request\ResetPasswordRequest;
 use App\Modules\User\Request\SignupRequest;
+use App\Modules\User\Request\UpgradeGuestRequest;
 use App\Modules\User\Services\UserService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +29,38 @@ class UserController extends Controller
             $user = $this->userService->store($details);
 
             return $this->success('Registered Successfully', Response::HTTP_CREATED, $user);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function guestRegister(GuestRegisterRequest $request): JsonResponse
+    {
+        try {
+            $details = $request->validated();
+
+            $response = $this->userService->registerGuest($details);
+
+            return $this->success('Guest registered successfully', Response::HTTP_CREATED, $response);
+        } catch (Exception $exception) {
+            return $this->handleException($exception);
+        }
+    }
+
+    public function upgradeGuest(UpgradeGuestRequest $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (! $user) {
+                throw new Exception('User not found', Response::HTTP_NOT_FOUND);
+            }
+
+            $details = $request->validated();
+
+            $response = $this->userService->upgradeGuest($user, $details);
+
+            return $this->success('Account upgraded to donor', Response::HTTP_OK, $response);
         } catch (Exception $exception) {
             return $this->handleException($exception);
         }

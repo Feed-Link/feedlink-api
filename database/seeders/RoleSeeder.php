@@ -59,5 +59,11 @@ class RoleSeeder extends Seeder
 
         $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'api']);
         $admin->givePermissionTo('manage all');
+
+        $guest = Role::firstOrCreate(['name' => 'guest', 'guard_name' => 'api']);
+        $guest->givePermissionTo([
+            'create listing', 'view listing', 'update listing', 'delete listing',
+            'confirm claim', 'reject claim',
+        ]);
     }
 }

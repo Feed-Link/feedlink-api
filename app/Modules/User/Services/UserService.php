@@ -242,4 +242,94 @@ class UserService
             throw $e;
         }
     }
+
+    /**
+     * ====================================
+     *          Guest Section
+     * ====================================
+     */
+    public function registerGuest(array $details): array
+    {
+        try {
+            $guestEmail = 'guest-'.Str::uuid().'@feedlink.local';
+
+            $userData = [
+                'name' => $details['name'],
+                'email' => $guestEmail,
+                'password' => Str::random(32),
+                'latitude' => $details['latitude'],
+                'longitude' => $details['longitude'],
+                'contact' => $details['contact'] ?? null,
+                'is_verified' => true,
+                'email_verified_at' => now(),
+            ];
+
+            $user = $this->userRepository->store($userData);
+
+            if (isset($user)) {
+                $user->assignRole('guest');
+                UserAcceptance::create([
+                    'user_id' => $user->id,
+                    'terms_version' => UserAcceptance::CURRENT_TERMS_VERSION,
+                    'terms_type' => 'guest',
+                    'ip_address' => request()->ip(),
+                    'accepted_at' => now(),
+                ]);
+            }
+
+            $token = $user->createToken('feedlink-app')->accessToken;
+            $refreshToken = Str::random(64);
+
+            RefreshToken::create([
+                'user_id' => $user->id,
+                'token' => hash('sha256', $refreshToken),
+                'expires_at' => now()->addDays(30),
+            ]);
+
+            return [
+                'access_token' => $token,
+                'refresh_token' => $refreshToken,
+                'expires_in' => 1800,
+            ];
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
+
+    public function upgradeGuest(object $user, array $details): array
+    {
+        try {
+            if (! $user->hasRole('guest')) {
+                throw new Exception('Only guest accounts can be upgraded', Response::HTTP_BAD_REQUEST);
+            }
+
+            $userData = [
+                'email' => $details['email'],
+                'password' => $details['password'],
+                'contact' => $details['contact'],
+            ];
+
+            $user->update($userData);
+            $user->refresh();
+
+            $user->removeRole('guest');
+            $user->assignRole('donor');
+
+            UserAcceptance::create([
+                'user_id' => $user->id,
+                'terms_version' => UserAcceptance::CURRENT_TERMS_VERSION,
+                'terms_type' => 'donor',
+                'ip_address' => request()->ip(),
+                'accepted_at' => now(),
+            ]);
+
+            SendOTPJob::dispatch($user);
+
+            return [
+                'message' => 'Guest account upgraded to donor. Please verify your email.',
+            ];
+        } catch (Exception $e) {
+            throw $e;
+        }
+    }
 }
