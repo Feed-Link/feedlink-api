@@ -5,6 +5,7 @@ namespace App\Modules\FoodListings\Services;
 use App\Modules\Core\Entities\Tag;
 use App\Modules\FoodListings\Entities\FoodRequest;
 use App\Modules\FoodListings\Repositories\FoodRequestRepository;
+use Carbon\Carbon;
 use Exception;
 
 class FoodRequestService
@@ -24,6 +25,10 @@ class FoodRequestService
             'long' => $data['longitude'],
         ];
         $data['status'] = 'open';
+
+        if (! empty($data['needed_by'])) {
+            $data['needed_by'] = Carbon::parse($data['needed_by'])->utc();
+        }
         $data['expires_at'] = $data['needed_by'];
 
         $request = $this->foodRequestRepository->store($data);
@@ -52,6 +57,11 @@ class FoodRequestService
 
         $tagSlugs = $data['tags'] ?? null;
         unset($data['tags']);
+
+        if (! empty($data['needed_by'])) {
+            $data['needed_by'] = Carbon::parse($data['needed_by'])->utc();
+            $data['expires_at'] = $data['needed_by'];
+        }
 
         if (isset($data['latitude']) && isset($data['longitude'])) {
             $data['location'] = [

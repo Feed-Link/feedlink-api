@@ -9,6 +9,7 @@ use App\Modules\Core\Enums\NotificationTypeEnum;
 use App\Modules\FoodListings\Repositories\FoodListingRepository;
 use App\Modules\FoodListings\Repositories\ListingClaimRepository;
 use App\Modules\Notifications\Jobs\SendNotificationJob;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -125,6 +126,23 @@ class FoodListingService
             ->get();
     }
 
+    /**
+     * Normalize offset-aware datetime inputs (e.g. `2026-07-18T18:17:00+05:45`) to UTC
+     * before persisting. The columns are naive timestamps read back as UTC; without
+     * this, Carbon keeps the input offset and format() stores the local wall-clock,
+     * which is later re-interpreted as UTC and shifted forward by the offset.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function normalizeDatetimesToUtc(array &$data): void
+    {
+        foreach (['expires_at', 'pickup_before'] as $field) {
+            if (! empty($data[$field])) {
+                $data[$field] = Carbon::parse($data[$field])->utc();
+            }
+        }
+    }
+
     public function createListing(array $data, string $donorId): object
     {
         $tagSlugs = $data['tags'] ?? [];
@@ -137,8 +155,10 @@ class FoodListingService
         ];
         $data['status'] = ListingStatusEnum::ACTIVE->value;
 
+        $this->normalizeDatetimesToUtc($data);
+
         if (empty($data['pickup_before']) && ! empty($data['expires_at'])) {
-            $data['pickup_before'] = now()->parse($data['expires_at'])->addHours(2)->toISOString();
+            $data['pickup_before'] = $data['expires_at']->copy()->addHours(2);
         }
 
         $listing = $this->foodListingRepository->store($data);
@@ -167,6 +187,8 @@ class FoodListingService
 
         $tagSlugs = $data['tags'] ?? null;
         unset($data['tags']);
+
+        $this->normalizeDatetimesToUtc($data);
 
         if (isset($data['latitude']) && isset($data['longitude'])) {
             $data['location'] = [
