@@ -45,3 +45,6 @@ frankenphp-worker.php
 .env.testing
 
 .worktrees/
+
+# Server access notes (contains infra/creds inventory, never commit)
+docs/deployment/SERVER_ACCESS.md
