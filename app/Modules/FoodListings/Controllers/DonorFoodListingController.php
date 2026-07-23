@@ -4,6 +4,7 @@ namespace App\Modules\FoodListings\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Claims\Resources\ListingClaimResource;
+use App\Modules\FoodListings\Requests\ReopenFoodListingRequest;
 use App\Modules\FoodListings\Requests\StoreFoodListingRequest;
 use App\Modules\FoodListings\Requests\UpdateFoodListingRequest;
 use App\Modules\FoodListings\Resources\FoodListingResource;
@@ -56,12 +57,12 @@ class DonorFoodListingController extends Controller
         }
     }
 
-    public function reopen(string $id): JsonResponse
+    public function reopen(ReopenFoodListingRequest $request, string $id): JsonResponse
     {
         try {
             DB::beginTransaction();
 
-            $listing = $this->foodListingService->reopenListing($id, Auth::id());
+            $listing = $this->foodListingService->reopenListing($id, Auth::id(), $request->validated());
 
             DB::commit();
 

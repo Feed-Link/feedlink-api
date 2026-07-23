@@ -60,7 +60,7 @@ class FoodListingService
         ];
     }
 
-    public function reopenListing(string $id, string $donorId): object
+    public function reopenListing(string $id, string $donorId, array $data): object
     {
         if (! Str::isUuid($id)) {
             throw new Exception('Listing not found', 404);
@@ -83,11 +83,15 @@ class FoodListingService
         $previousRecipientId = $listing->claimed_by;
         $donorName = $listing->donor->name;
 
+        $this->normalizeDatetimesToUtc($data);
+
         $listing->update([
             'status' => ListingStatusEnum::ACTIVE->value,
             'claimed_by' => null,
             'confirmed_at' => null,
             'listing_claim_id' => null,
+            'expires_at' => $data['expires_at'],
+            'pickup_before' => $data['pickup_before'],
         ]);
 
         $this->listingClaimRepository->resetAllClaimsForListing($id);

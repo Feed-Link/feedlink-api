@@ -25,6 +25,14 @@ class DonorReopenListingTest extends TestCase
 
     protected ListingClaim $rejectedClaim;
 
+    protected function reopenPayload(): array
+    {
+        return [
+            'expires_at' => now()->addHours(3)->format('Y-m-d H:i:s'),
+            'pickup_before' => now()->addHours(5)->format('Y-m-d H:i:s'),
+        ];
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -45,8 +53,8 @@ class DonorReopenListingTest extends TestCase
             'status' => 'claimed',
             'claimed_by' => $this->confirmedRecipient->id,
             'confirmed_at' => now(),
-            'expires_at' => now()->addHours(3),
-            'pickup_before' => now()->addHours(5),
+            'expires_at' => now()->subHour(),
+            'pickup_before' => now()->subMinutes(30),
             'latitude' => 27.7172,
             'longitude' => 85.3240,
             'address' => 'Thamel, Kathmandu',
@@ -71,7 +79,7 @@ class DonorReopenListingTest extends TestCase
         Queue::fake();
         Passport::actingAs($this->donor);
 
-        $response = $this->postJson("/api/donor/listings/{$this->listing->id}/reopen");
+        $response = $this->postJson("/api/donor/listings/{$this->listing->id}/reopen", $this->reopenPayload());
 
         $response->assertStatus(200)
             ->assertJsonPath('status_code', 200)
@@ -91,7 +99,7 @@ class DonorReopenListingTest extends TestCase
         Queue::fake();
         Passport::actingAs($this->donor);
 
-        $this->postJson("/api/donor/listings/{$this->listing->id}/reopen");
+        $this->postJson("/api/donor/listings/{$this->listing->id}/reopen", $this->reopenPayload());
 
         $this->assertDatabaseHas('listing_claims', [
             'id' => $this->confirmedClaim->id,
@@ -109,7 +117,7 @@ class DonorReopenListingTest extends TestCase
         Queue::fake();
         Passport::actingAs($this->donor);
 
-        $this->postJson("/api/donor/listings/{$this->listing->id}/reopen");
+        $this->postJson("/api/donor/listings/{$this->listing->id}/reopen", $this->reopenPayload());
 
         Queue::assertPushed(SendNotificationJob::class, function ($job) {
             return $job->userId === $this->confirmedRecipient->id
@@ -123,7 +131,7 @@ class DonorReopenListingTest extends TestCase
 
         $this->listing->update(['status' => 'active', 'claimed_by' => null, 'confirmed_at' => null]);
 
-        $response = $this->postJson("/api/donor/listings/{$this->listing->id}/reopen");
+        $response = $this->postJson("/api/donor/listings/{$this->listing->id}/reopen", $this->reopenPayload());
 
         $response->assertStatus(400);
     }
@@ -134,7 +142,7 @@ class DonorReopenListingTest extends TestCase
         $otherDonor->assignRole('donor');
         Passport::actingAs($otherDonor);
 
-        $response = $this->postJson("/api/donor/listings/{$this->listing->id}/reopen");
+        $response = $this->postJson("/api/donor/listings/{$this->listing->id}/reopen", $this->reopenPayload());
 
         $response->assertStatus(403);
     }
@@ -143,8 +151,50 @@ class DonorReopenListingTest extends TestCase
     {
         Passport::actingAs($this->donor);
 
-        $response = $this->postJson('/api/donor/listings/nonexistent-uuid/reopen');
+        $response = $this->postJson('/api/donor/listings/nonexistent-uuid/reopen', $this->reopenPayload());
 
         $response->assertStatus(404);
+    }
+
+    public function test_reopen_requires_fresh_expiry_dates(): void
+    {
+        Passport::actingAs($this->donor);
+
+        $response = $this->postJson("/api/donor/listings/{$this->listing->id}/reopen");
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['expires_at', 'pickup_before']);
+    }
+
+    public function test_reopen_sets_fresh_expiry_and_survives_immediate_expiry_sweep(): void
+    {
+        Queue::fake();
+        Passport::actingAs($this->donor);
+
+        $newExpiresAt = now()->addHours(4);
+        $newPickupBefore = now()->addHours(6);
+
+        $response = $this->postJson("/api/donor/listings/{$this->listing->id}/reopen", [
+            'expires_at' => $newExpiresAt->format('Y-m-d H:i:s'),
+            'pickup_before' => $newPickupBefore->format('Y-m-d H:i:s'),
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->listing->refresh();
+
+        $this->assertTrue($this->listing->expires_at->gt(now()));
+        $this->assertEqualsWithDelta(
+            $newExpiresAt->timestamp,
+            $this->listing->expires_at->timestamp,
+            2
+        );
+
+        $this->artisan('feedlink:expire-listings');
+
+        $this->assertDatabaseHas('food_listings', [
+            'id' => $this->listing->id,
+            'status' => 'active',
+        ]);
     }
 }

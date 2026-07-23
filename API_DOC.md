@@ -552,14 +552,28 @@ Valid for any listing status (active, claimed, expired, completed, cancelled).
 - `404` Listing not found
 
 ### POST `/donor/listings/{id}/reopen`
-Re-open a `claimed` listing when the confirmed recipient cannot make the pickup. Restores all claims (confirmed and previously auto-rejected) back to `pending` so the donor can re-pick from the original pool. Sends a `listing_reopened` push notification to the previously confirmed recipient.
+Re-open a `claimed` listing when the confirmed recipient cannot make the pickup. Restores all claims (confirmed and previously auto-rejected) back to `pending` so the donor can re-pick from the original pool. Requires a fresh pickup window since the original `expires_at`/`pickup_before` may already be in the past. Sends a `listing_reopened` push notification to the previously confirmed recipient.
 
-**Response (200):** Full listing shape (same as `GET /donor/listings` item), `status: "active"`.
+**Request body:**
+```json
+{
+  "expires_at": "2026-07-24T18:00:00+05:45",
+  "pickup_before": "2026-07-24T20:00:00+05:45"
+}
+```
+
+| Field | Rules |
+|---|---|
+| `expires_at` | required, date, after:now |
+| `pickup_before` | required, date, after:expires_at |
+
+**Response (200):** Full listing shape (same as `GET /donor/listings` item), `status: "active"`, with the new `expires_at`/`pickup_before`.
 
 **Error cases:**
 - `400` Listing is not in claimed status
 - `403` Not the owner of this listing
 - `404` Listing not found
+- `422` Validation error (missing/invalid `expires_at` or `pickup_before`)
 
 ### GET `/donor/listings/{listingId}/claims`
 Get all claims for a listing. Ordered by `created_at` desc.
